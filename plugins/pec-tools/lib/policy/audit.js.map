@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/policy/audit.ts"],
+  "sourcesContent": ["import { appendFileSync, mkdirSync } from 'node:fs'\nimport { dirname, resolve } from 'node:path'\n\n/** \u5BA1\u8BA1\u843D\u76D8\uFF1A\u62D2\u7EDD\u3001\u8131\u654F\u3001\u8BB0\u5FC6\u8986\u76D6\u3001\u6280\u80FD\u843D\u76D8\u90FD\u5199\u540C\u4E00\u6761 JSONL\uFF08R11\u300C\u62D2\u7EDD\u4E5F\u7559\u75D5\u300D\uFF09\u3002 */\nexport function auditPath(): string {\n  return resolve(process.env.PEC_AUDIT_PATH || './runs/audit.jsonl')\n}\n\nexport interface AuditEntry {\n  event: string\n  [key: string]: unknown\n}\n\nexport function writeAudit(entry: AuditEntry): void {\n  const line = JSON.stringify({ ts: new Date().toISOString(), ...entry })\n  try {\n    const target = auditPath()\n    mkdirSync(dirname(target), { recursive: true })\n    appendFileSync(target, `${line}\\n`)\n  } catch {\n    // \u5BA1\u8BA1\u5931\u8D25\u4E0D\u5F71\u54CD\u4E1A\u52A1\uFF1B\u8C03\u7528\u65B9\u5DF2\u7ECF\u628A\u62D2\u7EDD/\u8131\u654F\u7ED3\u679C\u8FD4\u56DE\u7ED9\u6A21\u578B\u3002\n  }\n}\n"],
+  "mappings": "AAAA,SAAS,gBAAgB,iBAAiB;AAC1C,SAAS,SAAS,eAAe;AAG1B,SAAS,YAAoB;AAClC,SAAO,QAAQ,QAAQ,IAAI,kBAAkB,oBAAoB;AACnE;AAOO,SAAS,WAAW,OAAyB;AAClD,QAAM,OAAO,KAAK,UAAU,EAAE,KAAI,oBAAI,KAAK,GAAE,YAAY,GAAG,GAAG,MAAM,CAAC;AACtE,MAAI;AACF,UAAM,SAAS,UAAU;AACzB,cAAU,QAAQ,MAAM,GAAG,EAAE,WAAW,KAAK,CAAC;AAC9C,mBAAe,QAAQ,GAAG,IAAI;AAAA,CAAI;AAAA,EACpC,QAAQ;AAAA,EAER;AACF;",
+  "names": []
+}

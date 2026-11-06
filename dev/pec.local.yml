@@ -1,0 +1,2 @@
+# 本地 headless 用的 overlay：把 pec-tools 挂到 headless profile（仅本地开发用）
+- name: '/Users/magicyoung/Project/Procurement-Exception-Agent/pec-agent/plugins/pec-tools/lib/index.js'

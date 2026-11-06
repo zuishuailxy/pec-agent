@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/db.ts"],
+  "sourcesContent": ["import Database from 'better-sqlite3'\n\nlet db: Database.Database | null = null\n\nexport function dbPath(): string {\n  return process.env.PEC_DB_PATH || './db/pec.db'\n}\n\nexport function openDb(path = dbPath()): Database.Database {\n  if (!db) db = new Database(path, { readonly: true, fileMustExist: true })\n  return db\n}\n\n/** \u6D4B\u8BD5/\u8BC4\u6D4B\u7528\uFF1A\u5207\u6362\u6570\u636E\u6587\u4EF6\u3002 */\nexport function resetDb(): void {\n  if (db) db.close()\n  db = null\n}\n\n/** \u53EA\u8BFB\u67E5\u8BE2\uFF0C\u7EDF\u4E00\u8FD4\u56DE\u884C\u6570\u7EC4 */\nexport function all<T = unknown>(sql: string, params: unknown[] = []): T[] {\n  return openDb().prepare(sql).all(...params) as T[]\n}\n\nexport function one<T = unknown>(sql: string, params: unknown[] = []): T | undefined {\n  return openDb().prepare(sql).get(...params) as T | undefined\n}\n"],
+  "mappings": "AAAA,OAAO,cAAc;AAErB,IAAI,KAA+B;AAE5B,SAAS,SAAiB;AAC/B,SAAO,QAAQ,IAAI,eAAe;AACpC;AAEO,SAAS,OAAO,OAAO,OAAO,GAAsB;AACzD,MAAI,CAAC,GAAI,MAAK,IAAI,SAAS,MAAM,EAAE,UAAU,MAAM,eAAe,KAAK,CAAC;AACxE,SAAO;AACT;AAGO,SAAS,UAAgB;AAC9B,MAAI,GAAI,IAAG,MAAM;AACjB,OAAK;AACP;AAGO,SAAS,IAAiB,KAAa,SAAoB,CAAC,GAAQ;AACzE,SAAO,OAAO,EAAE,QAAQ,GAAG,EAAE,IAAI,GAAG,MAAM;AAC5C;AAEO,SAAS,IAAiB,KAAa,SAAoB,CAAC,GAAkB;AACnF,SAAO,OAAO,EAAE,QAAQ,GAAG,EAAE,IAAI,GAAG,MAAM;AAC5C;",
+  "names": []
+}

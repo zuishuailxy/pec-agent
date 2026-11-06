@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "sessions": {
+    "T-001:U-07:session-0e26f353-e121-42ca-970b-ef24c33176e5": {
+      "tenantId": "T-001",
+      "userId": "U-07",
+      "sessionId": "session-0e26f353-e121-42ca-970b-ef24c33176e5",
+      "fields": {
+        "lastOrderId": "PO-20261013-0042",
+        "lastSupplierId": "SUP-1042",
+        "lastSkuId": "SKU-88213",
+        "lastExceptionType": "DELAY"
+      },
+      "updatedAt": "2026-11-06T14:32:46.268Z",
+      "expiresAt": "2026-11-13T14:32:46.268Z"
+    }
+  },
+  "users": {}
+}

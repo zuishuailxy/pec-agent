@@ -1,0 +1,13 @@
+# profile: pec
+# 只追加，不替换 base profile。候选人不得修改本文件。
+- name: '@deepseek-ai/dsh-tools'
+  config:
+    mode: native          # 每个工具以独立 schema 暴露给模型
+    maxParallelSubCalls: 10
+
+- name: '@pec/pec-tools'
+  config:
+    dbPath: ./db/pec.db
+    readonly: true
+    defaultTenant: T-001
+    audit: ./runs/audit.jsonl
