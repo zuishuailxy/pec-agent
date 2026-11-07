@@ -70,7 +70,7 @@ DSH 平台（不改）
 | 7 | `tickets` 无 supplier_id/金额 | `ticket_similar` join `orders` 派生；相似度=规则分，非模型分 |
 | 8 | 28 条工单 16/28 集中在 `PO-20260917-0129` | 按 `order_id` 聚合去重展示，保留 `sameOrderTickets`/动作分布；统计按去重前计，避免单订单淹没 |
 | 9 | `SUP-1047` 无合同；5/8 A/B 供应商无 penalty | `contract_search` 明确“未检索到”，技能护栏禁止编造条款号 |
-| 10 | 建议卡 `newDate` 冲突：题面技能样例“实际交期+14 天”（0042→11-16），但 §5.3 示例与历史 `EX-2061` 都是 2026-10-28 | 统一取 **承诺交期 + 8 天**（0042→10-28，两处历史锚点一致）；题面样例技能口径偏差写 CHANGELOG；`advice_card` 对 `reschedule` 做确定性重算，保证 A/B 结论一致 |
+| 10 | 建议卡 `newDate` 冲突：题面技能样例“实际交期+14 天”（0042→11-16），但 §5.3 示例与历史 `EX-2061` 都是 2026-10-28 | **用户拍板（2026-11-07）：以题面样例技能口径为准**，统一 **实际交期 + 14 天**（0042→2026-11-16）；`delivered_at` 为空时回退承诺交期+14 并标 `newDateSource`；历史 EX-2061 / §5.3 的 10-28 记为文档/数据不一致，写 CHANGELOG；`advice_card` 对 `reschedule` 做确定性重算，保证 A/B 结论一致 |
 | 11 | README 说 T-001 80 单实际 79；`delivered_at` 为空仅 1 条（0099） | 以 79 为准；NULL 容忍只用 0099 做载体 |
 | 12 | 状态 OPEN/SHIPPED 0 样本 | 文档声明状态分支仅覆盖 CLOSED/DELAYED/DRAFT |
 | 13 | 工具名带点会被 DeepSeek API 400 | 全部下划线：`order_lookup` 等（映射见 README） |
@@ -117,7 +117,7 @@ DSH 平台（不改）
   - 金额以 `qty×unit_price`（Fixed，HALF_UP 2 位）为准；传入 `amount` 不一致 → `INVALID_ARGUMENT`；`amount > 0`。
   - `evidence` 每条 ref 必须真实存在（`orders/suppliers/skus/contracts/tickets`），否则 `INVALID_ARGUMENT(E_EVIDENCE_NOT_FOUND)`；条款 ref 建议属订单供应商。
   - R7：`amount < 50000` → `自动`；`50000 ≤ amount < 200000` → `采购主管`；`amount ≥ 200000` → `总监+财务`；黑名单供应商 → 一律人工（强制 `needHuman=true`）。输出 `ruleHits[]` 说明命中规则。
-  - `reschedule` 的 `newDate` 统一重算：`承诺交期 + 8 天`（口径见 §4-10），忽略模型传入值并记录 `newDateSource`。
+  - `reschedule` 的 `newDate` 统一重算：**实际交期 + 14 天**（题面样例技能口径，口径见 §4-10；交付 0042 → 2026-11-16），忽略模型传入值并记录 `newDateSource`；`delivered_at` 为空时回退 `promised_at + 14`。
 - **输出**：`data.card{action, params, amount, evidence, risks, confidence, needHuman, approvalPath, ruleHits, newDate?, newDateSource?}` + provenance（orders/suppliers/contracts）。
 - **render**：建议卡（动作/参数/金额/审批路径/风险/置信度/是否人工/依据来源）。
 - **错误**：`INVALID_ARGUMENT`、`NOT_FOUND`、`POLICY_DENIED`。

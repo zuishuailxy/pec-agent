@@ -22,6 +22,15 @@
   - 相似度是启发式排序分，不是业务金额，不参与 R1 定点约束；金额输出仍走 `core/money.ts` 的 4 位定点 + 两位字符串。
   - 金额区间「含边界」：`amount == amountMin` 或 `amount == amountMax` 视为命中（与 R10「等于不触发」这类边界口径分开，按工具自身语义写死）。
 
+### 决策：建议卡 `newDate` 采用题面样例技能口径（2026-11-07，用户拍板）
+
+- **决定**：`advice_card` 对 `action=reschedule` 的 `newDate` 统一按 **实际交期（delivered_at）+ 14 天** 确定性重算（0042 → 2026-11-16；`delivered_at` 为空时回退承诺交期+14 并标 `newDateSource`），忽略模型传入值。
+- **依据**：任务书 §6.1 技能样例第 5 条“newDate=实际交期+14 天”；用户明确倾向题面样例技能口径。
+- **已知不一致**：任务书 §5.3 建议卡示例与历史工单 `EX-2061` 的 outcome 均为 `2026-10-28`（=承诺交期 10-20 + 8）。这是题面内部/数据层的不一致，不是实现错误；按用户决定以样例技能口径为准，评测断言以“实际交期+14”为期望值。
+- **影响面**：`advice_card`（T2）+ 技能 A 正文（T4）+ golden set 断言（T5）+ A/B 结论五元组（T6）；`ticket_similar` 不受影响。
+- **替代方案（未选）**：承诺交期+8 天（0042→10-28，与历史工单和 §5.3 示例一致）；因用户明确选择题面样例技能口径而放弃。
+- **新增文档**：`design.md`（必交交付物，含架构/取舍/口径/验收映射）。
+
 ## v0.1（D1）· 2026-11-06 基线（commit `e0855dd`，HEAD `9209145`）
 
 - 环境/脚手架修复（0.2.1-rc.2）：`output.schema` 显式 `additionalProperties`；入口 `export const inject = ['tools']`；guard 真实签名 `(exec) => string | undefined`；profile patch 用 `- insert:`；工具名统一下划线（DeepSeek API 只接受 `^[a-zA-Z0-9_-]+$`）；catalog render 读 `v.data.tables`；`run-headless.sh` 强制 `DSH_HOME`；本机 `workspace-write` bash 沙箱不可用 → PEC agent 用工具面收紧规避。

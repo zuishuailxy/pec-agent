@@ -1,5 +1,18 @@
 {
   "version": 1,
-  "sessions": {},
+  "sessions": {
+    "T-001:U-07:session-df66b1ed-46d1-4bc1-9f0b-59e1d8f56beb": {
+      "tenantId": "T-001",
+      "userId": "U-07",
+      "sessionId": "session-df66b1ed-46d1-4bc1-9f0b-59e1d8f56beb",
+      "fields": {
+        "lastTicketId": "EX-2065",
+        "lastExceptionType": "DELAY",
+        "lastSupplierId": "SUP-1050"
+      },
+      "updatedAt": "2026-11-07T02:03:10.905Z",
+      "expiresAt": "2026-11-14T02:03:10.905Z"
+    }
+  },
   "users": {}
 }
