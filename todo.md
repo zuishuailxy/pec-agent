@@ -74,7 +74,8 @@
 
 ## T8 文档骨架 + d1 tag（D1 收工）
 
-- [ ] `design.md`（架构/取舍/口径/风险）、`README.md`（三段演示命令 + 工具名映射）、`ARCHITECTURE.md`
+- [x] `design.md`（架构/取舍/口径/风险/ADR/验收映射）——已按用户要求提前落盘（commit `9794faa`）
+- [ ] `README.md`（三段演示命令 + 工具名映射）、`ARCHITECTURE.md`
 - [ ] `CHANGELOG.md` 补全 T1–T7 行为变化；`git tag d1`；工作区干净
 - **完成定义**：`git status` 干净、`git tag` 含 `d1`；README 三段命令可复制执行。
 
