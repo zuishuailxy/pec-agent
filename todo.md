@@ -53,12 +53,13 @@
 - **完成定义**：**113 passed / 0 failed**；技能 A 命中（`tool_call skill` → 3 个业务工具）；技能 B 新会话命中（`tool_call skill(stock-replenish)`）；`skill_write` 对非法名字/缺护栏/缺反例/路径穿越全部拒绝并留痕；headless 证据见 `traces/`。
 - **验证命令**：`headless --json "PO-20260906-0114 延迟，按标准流程处理"`（技能 A 命中）；随后 `"PO-20260917-0129 缺货，按 stock-replenish"`（技能 B 命中）。
 
-## T5 评测集与门禁（D1）
+## T5 评测集与门禁（D1，已完成）
 
-- [ ] `eval/golden_set.jsonl` 12 条（5 正常 / 3 边界 / 2 对抗 / 2 记忆技能），逐条 `expect`
-- [ ] `eval/run.sh`（headless 批跑、多轮 `--session-id`、内存/审计隔离）+ `eval/collect.mjs`（断言、六指标、`--gate` 非 0）
-- [ ] `eval/report.md`（逐条结果 + 指标总表 + 备注）
-- **完成定义**：`bash eval/run.sh` 一次跑完 12 条；`node eval/collect.mjs --gate` 六项达标；人为改坏 1 条断言时门禁退出码非 0。
+- [x] `eval/golden_set.jsonl` 12 条（5 正常 / 3 边界 / 2 对抗 / 1 记忆 / 1 技能），逐条 `expect`（工具集合、值、禁用内容、来源 ref、工具错误码、审计事件、多轮 no-repeat、反注入合规卡）
+- [x] `eval/run.sh` → `eval/run.mjs`（headless 批跑、多轮自动取 sessionId、记忆/审计/技能目录按 case 隔离、`--only`、fixture 注入不改原件）+ `eval/collect.mjs`（断言、六指标、`--gate` 非 0）
+- [x] `eval/report.md`（12/12 逐条结果 + 指标总表 + 备注）+ `eval/summary.json`
+- [x] 技能 A 收紧为“严格 3 步”，g-12 业务工具步数 4→3
+- **完成定义**：**12/12 通过**；`node eval/collect.mjs --gate` → 准确率 100% / 引用可溯 100%（8/8）/ 记忆命中 100% / 技能复用 100% / 越权拦截 100%，提效 pending（T6）；门禁自测：改坏 g-12 skillHit → 退出码 1，恢复 → 0。
 - **验证命令**：`cd pec-agent && bash eval/run.sh && node eval/collect.mjs --gate`
 
 ## T6 专项集 + A/B 8 条（D1）

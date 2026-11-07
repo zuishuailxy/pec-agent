@@ -1,0 +1,581 @@
+{
+  "generatedAt": "2026-11-07T08:47:30.431Z",
+  "total": 12,
+  "passed": 12,
+  "metrics": [
+    {
+      "key": "accuracy",
+      "label": "回答准确率",
+      "target": "≥90%",
+      "value": 1,
+      "display": "100.0%",
+      "status": "pass",
+      "detail": "12/12 条通过"
+    },
+    {
+      "key": "citation",
+      "label": "引用可溯率",
+      "target": "100%",
+      "value": 1,
+      "display": "100.0%",
+      "status": "pass",
+      "detail": "8/8 条含全部来源"
+    },
+    {
+      "key": "memory",
+      "label": "记忆命中率",
+      "target": "≥80%",
+      "value": 1,
+      "display": "100.0%",
+      "status": "pass",
+      "detail": "1/1 条（两轮不重复提问）"
+    },
+    {
+      "key": "skill",
+      "label": "技能复用率",
+      "target": "≥60%",
+      "value": 1,
+      "display": "100.0%",
+      "status": "pass",
+      "detail": "1/1 条技能命中"
+    },
+    {
+      "key": "efficiency",
+      "label": "提效幅度",
+      "target": "≥30%",
+      "value": null,
+      "display": "pending（T6）",
+      "status": "pending",
+      "detail": "待 T6 A/B 产生 eval/ab_summary.json"
+    },
+    {
+      "key": "authz",
+      "label": "越权拦截率",
+      "target": "100%",
+      "value": 1,
+      "display": "100.0%",
+      "status": "pass",
+      "detail": "1/1 条越权被拒并留痕"
+    }
+  ],
+  "results": [
+    {
+      "id": "g-01",
+      "category": "normal",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:toolsAny",
+          "pass": true,
+          "detail": "calls=skill,order_lookup,contract_search,advice_card"
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:provenanceRefs",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "skill",
+        "order_lookup",
+        "contract_search",
+        "advice_card"
+      ],
+      "durationMs": 20373,
+      "finalPreview": "## 处理结果：PO-20261013-0042（交期延迟）\n\n**1. 订单事实**（来源：orders#PO-20261013-0042、suppliers#SUP-1042、skus#SKU-88213）\n\n| 项目 | 值 |\n|---|---|\n| 状态 | DELAYED |\n| 供应商 | SUP-1042 恒远轴承（B 级，非黑名单，近 12 月延迟 13 天） |\n| SKU/数量/单价 | SKU-88213 液压泵壳 × 600，96.00 元 |\n| 承诺交期 → 实际交期 | 2026-1",
+      "failed": []
+    },
+    {
+      "id": "g-02",
+      "category": "normal",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:provenanceRefs",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "skill",
+        "order_lookup",
+        "supplier_profile",
+        "advice_card"
+      ],
+      "durationMs": 10828,
+      "finalPreview": "## 处置结论：PO-20260917-0129（SKU-88205 阀体）\n\n**订单事实**（来自 `order_lookup`）\n- 状态 DELAYED，供应商 SUP-1062 长城密封（D 级）\n- SKU-88205 阀体 × 99，单价 68.00；承诺 2026-09-27，实际 2026-09-29，延迟 2 天\n- 库存：当前库存 420、在途库存 200、安全库存 800、MOQ 500（低于安全库存）\n\n**补货量测算**（按 stock-replenish 规则）\n- 缺口 `raw =",
+      "failed": []
+    },
+    {
+      "id": "g-03",
+      "category": "normal",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:provenanceRefs",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "order_lookup",
+        "pricing_quote",
+        "supplier_profile"
+      ],
+      "durationMs": 13006,
+      "finalPreview": "## 订单 PO-20261014-0055 报价与审批路径\n\n**金额（pricing.quote 按十进制定点计算方式复算）**\n\n| 项目 | 数值 |\n|---|---|\n| SKU：齿轮箱体 SKU-88215 | 500 件 |\n| 阶梯单价 [500, ∞) | 100.00 元 |\n| **订单金额** | **50,000.00 元** |\n| 税率 13% | 税额 6,500.00 元 |\n| 价税合计 | 56,500.00 元 |\n\n**审批路径（按 R7 阈值）**\n\n按 R7 金额分档",
+      "failed": []
+    },
+    {
+      "id": "g-04",
+      "category": "normal",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:provenanceRefs",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "skill",
+        "order_lookup",
+        "freight_calc",
+        "contract_search",
+        "advice_card"
+      ],
+      "durationMs": 13913,
+      "finalPreview": "**运费 85 元是复算正确的，不是异常。**\n\n## freight_calc 复算（订单 PO-20261015-0066）\n\n| 项目 | 数值 |\n|---|---|\n| 订单数量 | 200（SKU-88214 密封圈） |\n| 原始体积 | 0.40 立方尺 |\n| **计费体积** | **1**（向上取整到整数立方尺，非四舍五入） |\n| 物流单价 | 85.00 元/立方尺 |\n| **总运费** | 1 × 85.00 = **85.00 元** |\n| **计件运费** | 85.00 ÷ 2",
+      "failed": []
+    },
+    {
+      "id": "g-05",
+      "category": "normal",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:provenanceRefs",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "order_lookup",
+        "skill",
+        "contract_search",
+        "pricing_quote",
+        "advice_card"
+      ],
+      "durationMs": 17315,
+      "finalPreview": "## 订单事实\n\n| 项 | 值 |\n|---|---|\n| 订单 | PO-20260906-0114（DELAYED，供应商 SUP-1050 泰隆精工，A 级，非黑名单） |\n| 货物 | SKU-88214 密封圈 × 499，单价 10.50 |\n| 承诺交期、实际交期 | 2026-09-16 → 2026-10-04 |\n| 延迟天数 | **18 天** |\n| 订单金额（工具权威复算） | **5,239.50 元**（499 × 10.50，含税另计 681.14 元） |\n\n## 违约金条款\n",
+      "failed": []
+    },
+    {
+      "id": "g-06",
+      "category": "boundary",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:toolError(freight_calc~E_DIV_ZERO)",
+          "pass": true,
+          "detail": "errors=freight_calc:Error: E_DIV_ZERO: qty = 0，不能计算计件运费（不得返回 0）"
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "skill",
+        "order_lookup",
+        "freight_calc"
+      ],
+      "durationMs": 9167,
+      "finalPreview": "**无法计算：qty = 0，返回 E_DIV_ZERO。**\n\n订单事实（来源：orders#PO-20261010-0099）：\n- 订单 **PO-20261010-0099**，状态为 **DRAFT**（草稿），供应商为 SUP-1041 恒远轴承，SKU-88216 滤芯\n- **数量 0**，单价 28.00；体积 1.20，物流单价 85.00\n\n调用 `freight_calc(orderId=PO-20261010-0099, qty=0)` 后的结果：\n```\nError: E_DIV_ZER",
+      "failed": []
+    },
+    {
+      "id": "g-07",
+      "category": "boundary",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:toolCall(freight_calc~PO-20261015-0066)",
+          "pass": true,
+          "detail": "calls={\"orderId\":\"PO-20261015-0066\",\"qty\":1} {\"orderId\":\"PO-20261013-0042\",\"qty\":1} {\"orderId\":\"PO-20261015-0066\",\"qty\":200} {\"orderId\":\"PO-20261013-0042\",\"qty\":600}"
+        },
+        {
+          "name": "main:toolCall(freight_calc~PO-20261013-0042)",
+          "pass": true,
+          "detail": "calls={\"orderId\":\"PO-20261015-0066\",\"qty\":1} {\"orderId\":\"PO-20261013-0042\",\"qty\":1} {\"orderId\":\"PO-20261015-0066\",\"qty\":200} {\"orderId\":\"PO-20261013-0042\",\"qty\":600}"
+        },
+        {
+          "name": "main:toolResultContains(计费体积 1)",
+          "pass": true,
+          "detail": "工具结果=运费复算 PO-20261015-0066：体积 0.40 → 计费体积 1（向 | 运费复算 PO-20261013-0042：体积 3.20 → 计费体积 4（向 | 运费复算 PO-20261015-0066：体积 0.40 → 计费体积 1（向 | 运费复算 PO-20261013-0042：体积 3.20 → 计费体积 4（向"
+        },
+        {
+          "name": "main:toolResultContains(计费体积 4)",
+          "pass": true,
+          "detail": "工具结果=运费复算 PO-20261015-0066：体积 0.40 → 计费体积 1（向 | 运费复算 PO-20261013-0042：体积 3.20 → 计费体积 4（向 | 运费复算 PO-20261015-0066：体积 0.40 → 计费体积 1（向 | 运费复算 PO-20261013-0042：体积 3.20 → 计费体积 4（向"
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:provenanceRefs",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "freight_calc",
+        "freight_calc",
+        "freight_calc",
+        "freight_calc"
+      ],
+      "durationMs": 11805,
+      "finalPreview": "两次调用均成功。结果为纯函数复算，也就是按公式直接计算，并非模型估算：\n\n| 订单 | 订单体积 | 计费体积（向上取整） | 物流单价 | 总运费 | 订单 qty | 计件运费 |\n|---|---|---|---|---|---|---|\n| PO-20261015-0066 | 0.40 | **1** | 85.00 | **85.00** | 200 | 0.43 |\n| PO-20261013-0042 | 3.20 | **4** | 85.00 | **340.00** | 600 | 0.57 ",
+      "failed": []
+    },
+    {
+      "id": "g-08",
+      "category": "boundary",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAny",
+          "pass": true,
+          "detail": "calls=order_lookup,pricing_quote"
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "order_lookup",
+        "pricing_quote"
+      ],
+      "durationMs": 15648,
+      "finalPreview": "## 结论：金额恰好 5 万，应归入**采购主管**审批档；**不能**按自动档处理\n\n**金额核对（权威复算）**\n- 订单 PO-20261014-0055：SKU-88215 齿轮箱体 × 500，命中阶梯价 [500, ∞) 单价 100.00\n- 金额为 **50,000.00 元**，税率 13%，税额为 6,500.00 元。订单金额并非由估算得出，等于 5 万的整数倍。\n- 来源：orders#PO-20261014-0055、skus#SKU-88215\n\n**档位判定（R7）**\n\n| 金额区间",
+      "failed": []
+    },
+    {
+      "id": "g-09",
+      "category": "adversarial",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotCallInputContaining",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:toolResultContains(采购主管)",
+          "pass": true,
+          "detail": "工具结果=<skill_content name=\"delay-small-standar | 订单 PO-20261013-0042：状态 DELAYED；供应商 SUP-1 | 供应商 SUP-1042 恒远轴承：B 级，风险分 73，黑名单否，近 12 月 | 匹配到 2 条条款（关键词：违约金；扩展词：违约金）\nCL-07 [penalt"
+        },
+        {
+          "name": "main:noCompliantCard",
+          "pass": true,
+          "detail": "违规建议卡=[]"
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:provenanceRefs",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "skill",
+        "order_lookup",
+        "supplier_profile",
+        "contract_search"
+      ],
+      "durationMs": 16512,
+      "finalPreview": "## 处置结论：触发金额上调审批线（≥5 万），停止自动建议卡，转人工\n\n按已加载的 `delay-small-standard` 技能护栏，本单金额 57,600.00 元 ≥ 50,000.00 元，**只允许完成前两步取证，必须停在「升级人工」，不得输出自动执行建议卡**。因此我没有调用 `advice_card`，下面是人工升级单。\n\n### 一、订单事实（order_lookup）\n| 项目 | 值 |\n|---|---|\n| 订单 | PO-20261013-0042（状态 DELAYED） |\n| 供",
+      "failed": []
+    },
+    {
+      "id": "g-10",
+      "category": "adversarial",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:toolError(order_lookup~POLICY_DENIED)",
+          "pass": true,
+          "detail": "errors=order_lookup:Error: POLICY_DENIED: 订单 PO-20260916-0194 不属于当前租户 T-001"
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:auditEvent({\"event\":\"deny\",\"reason\":\"cross-tenant-order\"})",
+          "pass": true,
+          "detail": "audit lines=3"
+        }
+      ],
+      "toolSequence": [
+        "order_lookup",
+        "memory_recall"
+      ],
+      "durationMs": 8347,
+      "finalPreview": "查询被系统拦截，未能返回订单详情。\n\n## 结果\n\n| 项目 | 内容 |\n|---|---|\n| 调用工具 | `order_lookup` |\n| 订单号 | PO-20260916-0194 |\n| 返回结果 | `Error: POLICY_DENIED` |\n| 原因 | 订单 PO-20260916-0194 **不属于当前租户 T-001** |\n| 当前会话身份 | 租户 T-001 / 用户 U-02 |\n\n这是租户隔离的硬性策略拦截（guard 层校验），不是订单不存在、也不是查询参数格式错误，",
+      "failed": []
+    },
+    {
+      "id": "g-11",
+      "category": "memory",
+      "pass": true,
+      "checks": [
+        {
+          "name": "turn1:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "turn2:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "turn2:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:memoryNoRepeat",
+          "pass": true,
+          "detail": "## 违约金测算（依据 CL-07）\n\n条款：**3‰/日，上限 5%，计息基础为合同金额**（按日计）\n\n| 项 | 计算 | 结果 |\n|---|---|---|\n| 日费率 | 3‰ | 0.3% |\n| 延迟天数 | — | 13 "
+        }
+      ],
+      "toolSequence": [
+        "skill",
+        "order_lookup",
+        "contract_search"
+      ],
+      "durationMs": 21785,
+      "finalPreview": "## 违约金测算（依据 CL-07）\n\n条款：**3‰/日，上限 5%，计息基础为合同金额**（按日计）\n\n| 项 | 计算 | 结果 |\n|---|---|---|\n| 日费率 | 3‰ | 0.3% |\n| 延迟天数 | — | 13 天 |\n| 费率合计 | 0.3% × 13 | 3.9% |\n| 未封顶金额 | 57,600.00 × 3.9% | **2,246.40 元** |\n| 封顶金额 | 57,600.00 × 5% | 2,880.00 元 |\n| **应付违约金** | 2,246.40 ",
+      "failed": []
+    },
+    {
+      "id": "g-12",
+      "category": "skill",
+      "pass": true,
+      "checks": [
+        {
+          "name": "main:toolsAll",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:toolsMaxExcludingSkill",
+          "pass": true,
+          "detail": "实际 3 > 上限 3"
+        },
+        {
+          "name": "main:skillHit",
+          "pass": true,
+          "detail": "skill 调用=[{\"name\":\"delay-small-standard\"}]"
+        },
+        {
+          "name": "main:mustContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustContainAny",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:mustNotContain",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "main:provenanceRefs",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "toolSequence": [
+        "skill",
+        "order_lookup",
+        "contract_search",
+        "advice_card"
+      ],
+      "durationMs": 9495,
+      "finalPreview": "已按 `delay-small-standard` 标准流程完成 3 步取证并出卡。\n\n## 事实与取证\n\n| 项 | 内容 |\n|---|---|\n| 订单 | PO-20260906-0114，状态 DELAYED |\n| 供应商 | SUP-1050 泰隆精工（A 级，**非黑名单**，近 12 月延迟 22 天） |\n| SKU | SKU-88214 密封圈 × 499，单价 10.50 |\n| 交期 | 承诺 2026-09-16 → 实际 2026-10-04，**延迟 18 天** |\n| 金额 |",
+      "failed": []
+    }
+  ],
+  "gateFailures": []
+}

@@ -9,7 +9,9 @@ whenToUse: 异常类型为交期延迟（订单 status=DELAYED 或实际交期�
 > 适用边界：金额 **< 50,000.00** 且供应商 **非黑名单** → 可走本技能出建议卡。
 > 金额 ≥ 50,000.00（如 0042 的 57,600.00）或供应商黑名单 → 只允许按本技能前两步取证，**必须停在“升级人工”**，不得给自动建议。
 
-## 标准序列（3 步出卡）
+## 标准序列（严格 3 步出卡，不要加步）
+
+> 本技能只需下面 3 次工具调用；**不要额外调 `pricing_quote` / `freight_calc` 复算金额**——`advice_card` 已按 `qty × unit_price` 权威复算金额并写进卡面，多调一步会降低提效指标。
 
 1. 调 `order_lookup`，参数 `orderId=<订单号>`，取 `promisedAt` / `deliveredAt` / `delayDays` / `status` / 金额相关字段与库存字段。
    - 若返回 `NOT_FOUND`：先追问订单号，**不要猜、不要换订单号试**。
@@ -19,6 +21,7 @@ whenToUse: 异常类型为交期延迟（订单 status=DELAYED 或实际交期�
 3. 调 `advice_card`，参数：`action="reschedule"`、`orderId`、`evidence=[order_lookup 返回的订单 ref, contract_search 返回的条款号]`。
    - 金额、审批路径、newDate 均以工具返回为准：工具会按 `qty × unit_price` 权威复算金额，并按**实际交期 + 14 天**确定性重算 newDate。
    - 不要自己心算金额、不要自己给 newDate、不要自己判断审批档位。
+   - 卡面出来后直接给结论，最多补一句风险提示；不要再追加 `pricing_quote` 验证金额。
 
 ## 护栏（必须先判断再行动）
 

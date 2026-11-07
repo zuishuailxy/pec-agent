@@ -292,7 +292,7 @@ score = 100                                     if blacklisted
 
 ## 8. 评测与提效设计
 
-### 8.1 golden set（12 条，四类）
+### 8.1 golden set（12 条，四类；D1 已实现，12/12 通过）
 
 | 类别 | 条数 | 样本 | 通过判据 |
 |---|---|---|---|
@@ -301,7 +301,8 @@ score = 100                                     if blacklisted
 | 对抗 | 2 | 合同文本夹带指令 / 跨租户取数 | 不执行注入、不越权（POLICY_DENIED+留痕） |
 | 记忆技能 | 2 | 两轮追问 / 技能命中 | 不重复提问、命中或合理回退 |
 
-每条用例：`{id, category, user, turns[], expect:{tools, values, mustContain, mustNotContain, provenanceRefs, noRepeatQuestion, skillHit}}`；`eval/run.sh` headless 批跑（多轮 `--session-id`，记忆/审计隔离），`eval/collect.mjs` 解析事件流断言 + 统计 + `--gate`（不达标非 0 退出）。
+每条用例：`{id, category, user, turns[], expect:{toolsAll/toolsAny/toolsMax, toolCalls, toolErrorContains, mustContain/mustContainAny/mustNotContain, provenanceRefs, auditEvents, noCompliantCard, skillHit, memoryNoRepeat}}`；`eval/run.sh` headless 批跑（多轮自动取 sessionId，记忆/审计/技能目录按 case 隔离），`eval/collect.mjs` 解析事件流断言 + 统计 + `--gate`（不达标非 0 退出）。
+**v1 结果（12/12）**：准确率 100%、引用可溯 100%（8/8 用例含全部来源）、记忆命中 100%、技能复用 100%、越权拦截 100%；提效 pending（T6）。门禁自测：改坏 g-12 skillHit → 退出码 1。
 
 ### 8.2 专项集
 
@@ -403,7 +404,7 @@ cd pec-agent
 # 多轮记忆：第 1 轮不带 --session-id，从 session 事件取 sessionId；第 2 轮传入
 ./dev/run-headless.sh --json "记录一下：当前处理订单 PO-20261013-0042（供应商 SUP-1042，交期延迟），请写入会话记忆"
 ./dev/run-headless.sh --session-id <第 1 轮 sessionId> --json "那违约金多少"
-# 评测（T5 后）：
+# 评测 + 门禁（12 条 golden set）
 bash eval/run.sh && node eval/collect.mjs --gate
 ```
 
@@ -415,6 +416,6 @@ bash eval/run.sh && node eval/collect.mjs --gate
 
 ## 14. 交付状态与已知缺口
 
-- **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 历史召回）+ `advice_card` 建议卡 + 3 个记忆工具与每轮注入 + `skill_write`；技能 A（手写 `delay-small-standard`）与技能 B（Agent 沉淀 `stock-replenish`）均命中验证；guard/审计/脱敏/工具面；定点金额与 provenance；`plan.md/todo.md/design.md/CHANGELOG.md/memory/extract.md/traces/`；工具冒烟 **113 passed**；headless 端到端：订单查询、历史召回、建议卡、两轮记忆、技能沉淀与命中。
-- **计划中**：评测/门禁（T5）、专项集/A-B（T6）、traces 补齐 qa/memory（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
+- **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 历史召回）+ `advice_card` 建议卡 + 3 个记忆工具与每轮注入 + `skill_write`；技能 A（手写 `delay-small-standard`）与技能 B（Agent 沉淀 `stock-replenish`）均命中验证；guard/审计/脱敏/工具面；定点金额与 provenance；**golden set 12 条 + 批跑/统计/门禁（12/12，五指标达标，提效待 T6）**；`plan.md/todo.md/design.md/CHANGELOG.md/memory/extract.md/eval/traces/`；工具冒烟 **113 passed**；headless 端到端：订单查询、历史召回、建议卡、两轮记忆、技能沉淀与命中。
+- **计划中**：专项集/A-B（T6）、traces 补齐 qa/memory（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
 - **已知缺口（题面/数据造成，已声明）**：R8 汇率不可实现；R11 成本价字段不存在；R9 风险分自定；R10 等值边界 0 样本；R7 ≥20 万 0 样本；状态机仅 3/5 状态有样本。
