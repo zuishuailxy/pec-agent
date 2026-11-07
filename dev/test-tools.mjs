@@ -18,6 +18,19 @@ async function run(name, tool, args) {
   try { return await tool.execute(args, {}) }
   catch (e) { return { __error: e } }
 }
+// 平台会校验工具返回值是 lossless JSON（undefined/BigInt 会整体失败），这里做回归扫描。
+function findUndefined(value, path = '$') {
+  if (value === undefined) return path
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) { const p = findUndefined(value[i], `${path}[${i}]`); if (p) return p }
+    return null
+  }
+  if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) { const p = findUndefined(v, `${path}.${k}`); if (p) return p }
+    return null
+  }
+  return null
+}
 
 const catalog = await run('catalog', catalogTool, {})
 ok('catalog 6 表', catalog?.data?.tables?.length === 6, JSON.stringify(catalog).slice(0, 200))
@@ -103,7 +116,85 @@ for (const [name, args] of [
   ok(name + ' → INVALID_ARGUMENT', bad?.__error?.code === 'INVALID_ARGUMENT', JSON.stringify(bad?.__error?.message))
 }
 
+// ---------- advice_card（T2）：R7 审批边界 / 金额权威复算 / evidence 校验 / newDate 确定性 ----------
+const advice = tools.adviceCard
+const { approvalFor, addDays, standardReschedule } = await import('../plugins/pec-tools/lib/tools/advice-card.js')
+const { toFixed: moneyToFixed } = await import('../plugins/pec-tools/lib/core/money.js')
+
+ok('R7 49999.99 → 自动', approvalFor(moneyToFixed('49999.99'), false).approvalPath === '自动（无需人工审批）')
+ok('R7 50000.00 → 采购主管（非自动）', approvalFor(moneyToFixed('50000'), false).approvalPath === '采购主管')
+ok('R7 199999.99 → 采购主管', approvalFor(moneyToFixed('199999.99'), false).approvalPath === '采购主管')
+ok('R7 200000.00 → 总监+财务', approvalFor(moneyToFixed('200000'), false).approvalPath === '总监+财务')
+const r7black = approvalFor(moneyToFixed('100'), true)
+ok('R7 黑名单一律人工', r7black.needHuman === true && /黑名单/.test(r7black.approvalPath), JSON.stringify(r7black))
+ok('newDate 实际交期+14', standardReschedule('2026-10-20', '2026-11-02').newDate === '2026-11-16' && standardReschedule('2026-10-20', '2026-11-02').newDateSource === 'delivered_at+14')
+ok('newDate delivered 空回退承诺+14', standardReschedule('2026-10-17', null).newDate === '2026-10-31' && /delivered_at 为空/.test(standardReschedule('2026-10-17', null).newDateSource), JSON.stringify(standardReschedule('2026-10-17', null)))
+ok('addDays 非法日期拒绝', (() => { try { addDays('not-a-date', 1); return false } catch (e) { return e.code === 'INVALID_ARGUMENT' } })())
+
+const card1 = await run('advice-0042', advice, { action: 'reschedule', orderId: 'PO-20261013-0042', evidence: ['CL-07'], confidence: 0.82 })
+const c1 = card1?.data?.card
+ok('advice 0042 金额 57,600.00', c1?.amount === '57600.00', JSON.stringify(c1?.amount))
+ok('advice 0042 → 采购主管 / 需人工', c1?.approvalPath === '采购主管' && c1?.needHuman === true, JSON.stringify(c1?.approvalPath))
+ok('advice 0042 newDate 2026-11-16（delivered+14）', c1?.newDate === '2026-11-16' && c1?.newDateSource === 'delivered_at+14', JSON.stringify([c1?.newDate, c1?.newDateSource]))
+ok('advice 0042 evidence 自动补订单+供应商', c1?.evidence?.some((e) => e.ref === 'orders#PO-20261013-0042') && c1?.evidence?.some((e) => e.ref === 'suppliers#SUP-1042') && c1?.evidence?.some((e) => e.type === 'clause' && e.ref === 'CL-07'), JSON.stringify(c1?.evidence))
+ok('advice 0042 provenance 含条款', (card1?.provenance ?? []).some((r) => r.table === 'contracts' && r.rowId === 'CL-07'), JSON.stringify(card1?.provenance))
+const c1render = advice.output.render({}, card1)[0].text
+ok('advice render 含审批/金额/来源', /采购主管/.test(c1render) && /57,600\.00/.test(c1render) && /\[来源: orders#PO-20261013-0042\]/.test(c1render), c1render.slice(0, 300))
+
+const card2 = await run('advice-0055', advice, { action: 'reschedule', orderId: 'PO-20261014-0055' })
+ok('advice 0055 恰好 5 万 → 采购主管（非自动）', card2?.data?.card?.amount === '50000.00' && card2?.data?.card?.approvalPath === '采购主管', JSON.stringify(card2?.data?.card?.approvalPath))
+
+const card3 = await run('advice-0129-blacklist', advice, { action: 'split', orderId: 'PO-20260917-0129', needHuman: false })
+ok('advice 黑名单强制人工（模型不能降级）', card3?.data?.card?.supplier?.blacklisted === true && card3?.data?.card?.needHuman === true && /黑名单/.test(card3?.data?.card?.approvalPath), JSON.stringify(card3?.data?.card?.approvalPath))
+
+const card4 = await run('advice-0042-newdate-override', advice, { action: 'reschedule', orderId: 'PO-20261013-0042', params: { newDate: '2099-01-01' } })
+ok('advice reschedule 忽略模型 newDate', card4?.data?.card?.newDate === '2026-11-16' && card4?.data?.card?.params?.newDate === '2026-11-16', JSON.stringify(card4?.data?.card?.params))
+
+const card5 = await run('advice-escalate', advice, { action: 'split', orderId: 'PO-20260906-0114', needHuman: true })
+ok('advice 模型可升级 needHuman（自动流程）', card5?.data?.card?.approvalPath === '自动（无需人工审批）' && card5?.data?.card?.needHuman === true, JSON.stringify(card5?.data?.card?.approvalPath))
+
+for (const [name, args, expectCode, expectMsg] of [
+  ['advice amount 造假', { action: 'reschedule', orderId: 'PO-20261013-0042', amount: 1 }, 'INVALID_ARGUMENT', /权威金额不一致/],
+  ['advice evidence 不存在', { action: 'reschedule', orderId: 'PO-20261013-0042', evidence: ['orders#NOPE'] }, 'INVALID_ARGUMENT', /E_EVIDENCE_NOT_FOUND/],
+  ['advice 条款非本单供应商', { action: 'reschedule', orderId: 'PO-20261013-0042', evidence: ['CL-45'] }, 'INVALID_ARGUMENT', /E_EVIDENCE_MISMATCH/],
+  ['advice 未知动作', { action: 'foo', orderId: 'PO-20261013-0042' }, 'INVALID_ARGUMENT', /未知动作/],
+  ['advice confidence 越界', { action: 'split', orderId: 'PO-20261013-0042', confidence: 1.5 }, 'INVALID_ARGUMENT', /confidence/],
+  ['advice qty=0 订单', { action: 'split', orderId: 'PO-20261010-0099' }, 'INVALID_ARGUMENT', /E_ZERO_AMOUNT/],
+  ['advice 订单不存在', { action: 'split', orderId: 'PO-NOT-EXIST' }, 'NOT_FOUND', /订单不存在/],
+]) {
+  const bad = await run(name, advice, args)
+  ok(name + ' → ' + expectCode, bad?.__error?.code === expectCode && expectMsg.test(bad?.__error?.message ?? ''), JSON.stringify(bad?.__error?.message))
+}
+
+// 平台 lossless JSON 回归：所有工具返回 value 与其 render 输出都不得含 undefined
+for (const [name, value] of [
+  ['contract_search', clause07?.data],
+  ['contract_search 无命中', noClause?.data],
+  ['freight_calc', freight?.data],
+  ['order_lookup', order?.data],
+  ['pricing_quote', pricing?.data],
+  ['supplier_profile', supplier?.data],
+  ['ticket_similar', t1?.data],
+  ['advice_card', card1?.data],
+]) {
+  ok('lossless JSON: ' + name, findUndefined(value) === null, String(findUndefined(value)))
+}
+for (const [name, tool, value] of [
+  ['contract_search', tools.contractSearch, clause07],
+  ['freight_calc', tools.freightCalc, freight],
+  ['advice_card', tools.adviceCard, card1],
+]) {
+  const rendered = tool.output.render({}, value)
+  ok('lossless JSON render: ' + name, findUndefined(rendered) === null, String(findUndefined(rendered)))
+}
+
+const plugin = await import('../plugins/pec-tools/lib/index.js')
+const surface = await import('../plugins/pec-tools/lib/policy/tool-surface.js')
+ok('advice_card 已注册到入口', plugin.inject?.includes?.('tools'), JSON.stringify(plugin.inject))
+ok('advice_card 在工具面 allow 列表', surface.PEC_TOOLS.includes('advice_card'), JSON.stringify(surface.PEC_TOOLS))
+
 // 跨租户：U-08 是 T-002 用户；只应看到 T-002 工单，查 T-001 供应商必须 POLICY_DENIED
+
 const identityModule = await import('../plugins/pec-tools/lib/policy/identity.js')
 const { readFileSync } = await import('node:fs')
 process.env.PEC_USER_ID = 'U-08'
@@ -115,6 +206,8 @@ ok('ticket 跨租户 → POLICY_DENIED', t10?.__error?.code === 'POLICY_DENIED',
 let auditText = ''
 try { auditText = readFileSync('/tmp/pec-audit-test.jsonl', 'utf8') } catch {}
 ok('ticket 跨租户拒绝留痕', auditText.includes('cross-tenant-supplier'), auditText.slice(-200))
+const adviceCross = await run('advice-cross-tenant', tools.adviceCard, { action: 'reschedule', orderId: 'PO-20261013-0042' })
+ok('advice 跨租户 → POLICY_DENIED', adviceCross?.__error?.code === 'POLICY_DENIED', JSON.stringify(adviceCross?.__error?.message))
 delete process.env.PEC_USER_ID
 identityModule.resetIdentity()
 

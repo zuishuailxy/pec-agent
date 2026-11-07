@@ -25,6 +25,7 @@ ESBUILD="$ROOT/dev/node_modules/.bin/esbuild"
   plugins/pec-tools/src/tools/freight-calc.ts \
   plugins/pec-tools/src/tools/contract-search.ts \
   plugins/pec-tools/src/tools/ticket-similar.ts \
+  plugins/pec-tools/src/tools/advice-card.ts \
   plugins/pec-tools/src/memory/store.ts \
   --outbase=plugins/pec-tools/src \
   --outdir=plugins/pec-tools/lib \

@@ -111,7 +111,8 @@ ctx.tools.register(defineTool({
 
 - 结构化 `data` + `provenance` 放在 `value`（供评测/审计）；
 - **所有要给模型/人看的来源、统计、口径说明都必须由 `render()` 拼进文本**；
-- `render()` 必须是纯函数、不 await、不抛错、返回值 lossless JSON（含 BigInt/undefined 会导致 `INVALID_TOOL_OUTPUT`）。
+- `render()` 必须是纯函数、不 await、不抛错、返回值 lossless JSON（含 BigInt/undefined 会导致 `INVALID_TOOL_OUTPUT`）；
+- **`value`（canonical 返回对象）同样被平台做 lossless JSON 校验**：值为 `undefined` 的属性会让整个工具调用失败（`value is not lossless JSON`）。因此所有可选字段一律**条件写字段**，禁止 `{ x: cond ? v : undefined }`（T2 headless 暴露并已修复 `contract_search`/`freight_calc`，新增回归扫描）。
 
 ### 3.2 provenance 规范
 
@@ -158,7 +159,7 @@ resolveIdentity(sessionId?): { userId, tenantId, role }
 | 4 | `freight_calc`（freight.calc） | 纯函数 | 体积向上取整（3.2→4、0.4→1）、总运费、计件；qty=0→`E_DIV_ZERO` | ✅ |
 | 5 | `contract_search`（contract.search） | 读 | FTS5 trigram + 同义词 + LIKE 回退；无命中明确“未检索到”；合同原文按角色 | ✅ |
 | 6 | `ticket_similar`（ticket.similar） | 读 | 异常类型+供应商+金额区间召回；规则相似度；按订单去重；provenance | ✅ D1 |
-| 7 | `advice_card` | 校验 | 建议卡：R7 审批、黑名单、evidence 存在性、newDate 确定性重算 | 计划 T2 |
+| 7 | `advice_card` | 校验 | 建议卡：R7 审批、黑名单、evidence 存在性、newDate 确定性重算 | ✅ D1 |
 | 8 | `memory_recall/remember/forget` | 读写 | 两层记忆白名单、TTL、冲突、撤销 | 计划 T3 |
 | 9 | `skill_write` | 写 | 技能落盘：frontmatter/护栏/反例校验 + 目录白名单 + 审计 | 计划 T4 |
 
@@ -201,7 +202,7 @@ resolveIdentity(sessionId?): { userId, tenantId, role }
 
 **示例（DELAY + SUP-1050 + amountMax=10000，真实输出）**：总权重 100；EX-2065（5,239.50，区间内，供应商命中）=100；EX-2070（6,732.00）=100；EX-2063（SUP-1049，8,400.00，供应商未命中、金额内）=70；EX-2071（SUP-1050，48,000.00，供应商命中、金额距离 38,000/10,000 → p=0）=70；其余按距离与 id 排序，见 `runs/t1-ticket-similar.jsonl`。
 
-### 4.5 `advice_card` 设计（计划 T2，交付前完成）
+### 4.5 `advice_card` 设计（D1 已实现）
 
 - 只产出建议卡，不执行写操作（题面 §1.4）；
 - **工具侧统一校验**（模型不能绕过）：
@@ -367,6 +368,7 @@ score = 100                                     if blacklisted
 | `systemPrompt.section` 版本差异 | 记忆注入失败 | 先最小 headless 验证；降级 `agent/pre-step` 注入 |
 | restrict 对未知工具名抛错 | agent 创建失败 | 新增工具同步 `PEC_TOOLS` + 重编译 + headless 冒烟 |
 | 数据缺口无法逐位 | 验收争议 | 纯函数测试向量 + design/CHANGELOG 显式声明自定口径 |
+| 工具 value 含 `undefined` → 平台 lossless JSON 校验失败 | 工具整体不可用 | 可选字段条件写 + 冒烟测试递归扫描 `undefined`（T2 已修复 `contract_search`/`freight_calc`） |
 | 技能 B 自动生成不可控 | 演示失败 | `skill_write` 严格校验 + 预演一次成功对话 + 保留可复现命令 |
 | 16/28 工单集中单订单 | 技能命中/A-B 样本偏斜 | A/B 用 data-audit §12.2 的 8 条；黑名单单只做“护栏命中” |
 
@@ -402,6 +404,6 @@ bash eval/run.sh && node eval/collect.mjs --gate
 
 ## 14. 交付状态与已知缺口
 
-- **已完成（D1）**：基线脚手架 + 5 个业务工具 + `ticket_similar`；guard/审计/脱敏/工具面；定点金额与 provenance；`plan.md/todo.md/design.md/CHANGELOG.md`。
-- **计划中**：`advice_card`（T2）、记忆工具与注入（T3）、技能 A/B + `skill_write`（T4）、评测/门禁（T5）、专项集/A-B（T6）、traces（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
+- **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 通知召回）+ `advice_card` 建议卡；guard/审计/脱敏/工具面；定点金额与 provenance；`plan.md/todo.md/design.md/CHANGELOG.md`；工具冒烟 **79 passed**；headless 端到端：订单查询、历史工单召回、建议卡（含条款证据）。
+- **计划中**：记忆工具与注入（T3）、技能 A/B + `skill_write`（T4）、评测/门禁（T5）、专项集/A-B（T6）、traces（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
 - **已知缺口（题面/数据造成，已声明）**：R8 汇率不可实现；R11 成本价字段不存在；R9 风险分自定；R10 等值边界 0 样本；R7 ≥20 万 0 样本；状态机仅 3/5 状态有样本。

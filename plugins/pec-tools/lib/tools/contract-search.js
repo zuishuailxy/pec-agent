@@ -138,16 +138,17 @@ const contractSearch = defineTool({
     const hits = [...found.values()].slice(0, 5).map((row) => {
       const terms = summarizeClause(row);
       const summaryText = row.type === "penalty" ? `\u8FDD\u7EA6\u91D1 ${terms.ratePermille ?? "?"}\u2030/\u65E5\uFF0C\u4E0A\u9650 ${terms.capPercent ?? "?"}%` : row.type === "freight" ? `\u8FD0\u8F93\u8D39\u7528\u7531${terms.freightBearer ?? "?"}\u627F\u62C5` : row.type === "moq" ? `\u6700\u5C0F\u8D77\u8BA2\u91CF ${terms.minOrderQty ?? "?"} \u4EF6` : row.type === "payment" ? `\u8D26\u671F ${terms.paymentDays ?? "?"} \u65E5` : row.type === "warranty" ? `\u8D28\u4FDD ${terms.warrantyMonths ?? "?"} \u4E2A\u6708` : row.type;
-      return {
+      const hit = {
         clauseNo: row.clause_no,
         supplierId: row.supplier_id,
         type: row.type,
         effectiveFrom: row.effective_from,
         summaryText,
-        terms,
-        text: access === "full" ? row.text : void 0,
-        textOmitted: access === "full" ? void 0 : access
+        terms
       };
+      if (access === "full") hit.text = row.text;
+      else hit.textOmitted = access;
+      return hit;
     });
     return {
       data: {

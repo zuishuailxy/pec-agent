@@ -56,19 +56,21 @@ export const freightCalc = defineTool({
     const unit = divFixed(totalFreight, toFixed(qty))
     unitFreight = fixedToString(unit, 2)
 
+    // 注意：平台会校验「value is not lossless JSON」，值为 undefined 的属性会整体失败 → 条件写字段。
+    const data: Record<string, unknown> = {
+      orderId: row.id,
+      qty,
+      orderQty: row.qty,
+      volume: fixedToString(volume, 2),
+      billedVolume: Number(billedVolume),
+      freightRate: fixedToString(toFixed(row.freight_rate), 2),
+      totalFreight: fixedToString(totalFreight, 2),
+      totalFreightReadable: formatMoney(totalFreight),
+      unitFreight,
+    }
+    if (qty !== row.qty) data.warning = `传入 qty=${qty} 与订单 qty=${row.qty} 不一致，计件运费按传入 qty 计算`
     return {
-      data: {
-        orderId: row.id,
-        qty,
-        orderQty: row.qty,
-        volume: fixedToString(volume, 2),
-        billedVolume: Number(billedVolume),
-        freightRate: fixedToString(toFixed(row.freight_rate), 2),
-        totalFreight: fixedToString(totalFreight, 2),
-        totalFreightReadable: formatMoney(totalFreight),
-        unitFreight,
-        warning: qty !== row.qty ? `传入 qty=${qty} 与订单 qty=${row.qty} 不一致，计件运费按传入 qty 计算` : undefined,
-      },
+      data,
       provenance: [prov('orders', row.id, ['volume', 'freight_rate', 'qty'])],
     }
   },

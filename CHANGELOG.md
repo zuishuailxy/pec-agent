@@ -2,6 +2,30 @@
 
 > 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见文末（自拟，非官方）。
 
+## v0.3（D1）· 2026-11-07
+
+### T2 `advice_card` 建议卡（第 8 个业务工具）
+
+- **行为**：新增 `advice_card`，只产出建议卡、不执行写操作（题面 §1.4）。
+  - **金额权威复算**：按订单 `qty × unit_price`（Fixed 4 位定点 + HALF_UP）为权威值；模型传入 `amount` 只用于核对，不一致 → `INVALID_ARGUMENT`；`qty=0`/金额为 0 → `INVALID_ARGUMENT(E_ZERO_AMOUNT)`。
+  - **R7 强制**（工具写死，模型不可绕过）：`< 50,000.00` 自动；`50,000.00–199,999.99` 采购主管；`≥ 200,000.00` 总监+财务；黑名单一律“人工复核（黑名单供应商）”。模型只能把 `needHuman` 升级为 true，不能降级。
+  - **evidence 校验**：自动补 `orders#订单`、`suppliers#供应商` 权威来源；其余 ref 必须真实存在（`E_EVIDENCE_NOT_FOUND`），条款必须属于本单供应商（`E_EVIDENCE_MISMATCH`），跨租户证据 `POLICY_DENIED` + 审计；输出标准化 `{type, ref}` 并进 provenance。
+  - **newDate 确定性重算**：`action=reschedule` 时忽略模型传值，统一 `实际交期 + 14 天`（0042 → 2026-11-16；`delivered_at` 为空回退承诺交期+14 并标 `newDateSource`），与用户确认的题面样例技能口径一致；保证 A/B 结论五元组可逐位比对。
+  - **风险补充**：延迟天数、黑名单/D 级、近 12 月延迟、金额阈值由工具按订单/供应商事实补充并去重（模型风险保留在前）。
+  - **渲染**：建议卡（动作/参数/金额/审批路径/规则命中/风险/置信度/证据）+ `[来源:]`，并声明“只产出建议、不执行写操作”。
+  - **记忆**：写会话记忆 `lastOrderId/lastSupplierId/currentAction`（供下一轮注入）。
+- **接线**：`index.ts` 注册、`tools/business.ts` re-export、`policy/tool-surface.ts` allow 加 `advice_card`、`dev/build.sh` entry；重编译 `lib/`。
+- **回归证据**：`node dev/test-tools.mjs` → **79 passed / 0 failed**（T1 后 40 → +39 条：R7 四档纯函数/临界值、黑名单强制人工、金额造假、evidence 不存在/条款错配、newDate 重算、lossless JSON 扫描、注册与工具面）。
+- **headless 证据**：`runs/t2-advice-card.jsonl`（5 次工具调用：order_lookup → contract_search → pricing_quote → supplier_profile → advice_card；建议卡含 `CL-07` 证据、`采购主管`、`newDate 2026-11-16`、金额 57,600.00）。
+
+### 基线修复（headless 暴露，影响既有工具）
+
+- **问题**：`contract_search`（原文不可见时 `text: undefined` / `textOmitted: undefined`）与 `freight_calc`（`warning: undefined`）的返回 value 含值为 `undefined` 的属性。0.2.1 平台对工具返回值做 lossless JSON 校验，会报 `tool "<name>" returned invalid output: value is not lossless JSON`，**整个工具调用失败**（工具级直调测试发现不了）。
+- **发现路径**：T2 headless 首次运行连续 3 次 `contract_search` 报错；模型未编造条款号（降级正确），但工具必须修。
+- **修复**：改为**条件写字段**（不可见时省略 `text`、只写 `textOmitted`；qty 一致时不写 `warning`）。
+- **回归**：新增 lossless JSON 扫描断言（8 个工具 value + 3 个 render 输出均无 `undefined`），防止回归。
+- **影响面**：合同检索/运费计算在 headless/评测中从“不可用”恢复；工具语义不变。
+
 ## v0.2（D1）· 2026-11-07
 
 ### T1 `ticket_similar` 实现（替换 NOT_IMPLEMENTED 桩）

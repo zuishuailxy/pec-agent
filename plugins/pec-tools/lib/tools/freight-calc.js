@@ -42,19 +42,20 @@ const freightCalc = defineTool({
     if (qty === 0) throw eDivZero("qty = 0\uFF0C\u4E0D\u80FD\u8BA1\u7B97\u8BA1\u4EF6\u8FD0\u8D39\uFF08\u4E0D\u5F97\u8FD4\u56DE 0\uFF09");
     const unit = divFixed(totalFreight, toFixed(qty));
     unitFreight = fixedToString(unit, 2);
+    const data = {
+      orderId: row.id,
+      qty,
+      orderQty: row.qty,
+      volume: fixedToString(volume, 2),
+      billedVolume: Number(billedVolume),
+      freightRate: fixedToString(toFixed(row.freight_rate), 2),
+      totalFreight: fixedToString(totalFreight, 2),
+      totalFreightReadable: formatMoney(totalFreight),
+      unitFreight
+    };
+    if (qty !== row.qty) data.warning = `\u4F20\u5165 qty=${qty} \u4E0E\u8BA2\u5355 qty=${row.qty} \u4E0D\u4E00\u81F4\uFF0C\u8BA1\u4EF6\u8FD0\u8D39\u6309\u4F20\u5165 qty \u8BA1\u7B97`;
     return {
-      data: {
-        orderId: row.id,
-        qty,
-        orderQty: row.qty,
-        volume: fixedToString(volume, 2),
-        billedVolume: Number(billedVolume),
-        freightRate: fixedToString(toFixed(row.freight_rate), 2),
-        totalFreight: fixedToString(totalFreight, 2),
-        totalFreightReadable: formatMoney(totalFreight),
-        unitFreight,
-        warning: qty !== row.qty ? `\u4F20\u5165 qty=${qty} \u4E0E\u8BA2\u5355 qty=${row.qty} \u4E0D\u4E00\u81F4\uFF0C\u8BA1\u4EF6\u8FD0\u8D39\u6309\u4F20\u5165 qty \u8BA1\u7B97` : void 0
-      },
+      data,
       provenance: [prov("orders", row.id, ["volume", "freight_rate", "qty"])]
     };
   }

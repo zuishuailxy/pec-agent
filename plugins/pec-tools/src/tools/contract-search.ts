@@ -175,16 +175,19 @@ export const contractSearch = defineTool({
                 : row.type === 'warranty'
                   ? `质保 ${terms.warrantyMonths ?? '?'} 个月`
                   : row.type
-      return {
+      // 注意：平台会校验「value is not lossless JSON」，值为 undefined 的属性会整体失败。
+      // 因此不可见时省略 text、只写 textOmitted，而不是写成 undefined。
+      const hit: Record<string, unknown> = {
         clauseNo: row.clause_no,
         supplierId: row.supplier_id,
         type: row.type,
         effectiveFrom: row.effective_from,
         summaryText,
         terms,
-        text: access === 'full' ? row.text : undefined,
-        textOmitted: access === 'full' ? undefined : access,
       }
+      if (access === 'full') hit.text = row.text
+      else hit.textOmitted = access
+      return hit
     })
 
     return {

@@ -25,12 +25,13 @@
   ./dev/run-headless.sh --json "调用 ticket_similar 查询异常类型 DELAY、供应商 SUP-1050、金额上限 10000 的历史工单，按相似度排序并给来源"
   ```
 
-## T2 `advice_card` 建议卡（D1）
+## T2 `advice_card` 建议卡（D1，已完成）
 
-- [ ] `plugins/pec-tools/src/tools/advice-card.ts`：金额权威复算、evidence 存在性校验、R7 审批路径（含 50,000.00 / 200,000.00 边界）、黑名单强制人工、`reschedule` newDate 确定性重算、render 卡片
-- [ ] `index.ts` 注册 + `policy/tool-surface.ts` allow 加 `advice_card` + `dev/build.sh` entry + `tools/business.ts` re-export
-- [ ] `dev/test-tools.mjs` 测试向量：0042→主管/needHuman、0055→主管（非自动）、构造 200000→总监+财务、黑名单→强制人工、伪造 evidence→报错、amount 造假→报错
-- **完成定义**：6 组测试全绿；headless 能生成一张带 evidence/provenance 的建议卡。
+- [x] `plugins/pec-tools/src/tools/advice-card.ts`：金额权威复算、evidence 存在性校验、R7 审批路径（含 50,000.00 / 200,000.00 边界）、黑名单强制人工、`reschedule` newDate 确定性重算（实际交期+14）、render 卡片
+- [x] `index.ts` 注册 + `policy/tool-surface.ts` allow 加 `advice_card` + `dev/build.sh` entry + `tools/business.ts` re-export
+- [x] `dev/test-tools.mjs` 测试向量（+39 条）：R7 四档纯函数/临界值、0042→主管/needHuman、0055→主管（非自动）、黑名单→强制人工、伪造 evidence/条款错配/amount 造假→报错、newDate 忽略模型值、lossless JSON 扫描、注册与工具面
+- [x] 基线修复：`contract_search`/`freight_calc` 返回 value 含 `undefined` → 平台 lossless JSON 校验失败（headless 首次运行时暴露），改为条件写字段 + 回归扫描
+- **完成定义**：**79 passed / 0 failed**；headless 端到端建议卡（5 次工具调用，含 `CL-07` 证据、`采购主管`、`newDate 2026-11-16`），见 `runs/t2-advice-card.jsonl`。
 - **验证命令**：`./dev/build.sh && node dev/test-tools.mjs`；headless 让 Agent 处理 0042 并输出建议卡。
 
 ## T3 记忆工具与每轮注入（D1）
