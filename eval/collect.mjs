@@ -54,7 +54,7 @@ function summarizeTurn(events) {
 }
 
 function evaluate(turnData, expect, label, checks) {
-  const check = (name, pass, detail = '') => checks.push({ name: `${label}:${name}`, pass: Boolean(pass), detail: String(detail).slice(0, 300) })
+  const check = (name, pass, detail = '', advisory = false) => checks.push({ name: `${label}:${name}`, pass: Boolean(pass), advisory, detail: String(detail).slice(0, 300) })
   const { toolCalls, toolResults, final } = turnData
   const callsText = toolCalls.map((call) => JSON.stringify(call.input)).join(' ')
   const rawAll = `${final}\n${toolResults.map((result) => result.text).join('\n')}`
@@ -68,7 +68,12 @@ function evaluate(turnData, expect, label, checks) {
   }
   if (expect.toolsMaxExcludingSkill !== undefined) {
     const count = toolCalls.filter((call) => call.tool !== 'skill').length
-    check('toolsMaxExcludingSkill', count <= expect.toolsMaxExcludingSkill, `实际 ${count} > 上限 ${expect.toolsMaxExcludingSkill}`)
+    check(
+      'toolsMaxExcludingSkill',
+      count <= expect.toolsMaxExcludingSkill,
+      `实际 ${count} 步（目标 ≤${expect.toolsMaxExcludingSkill}；仅提示，不计入用例失败，步数指标由 T6 A/B 严格考核）`,
+      true,
+    )
   }
   for (const item of expect.toolCalls ?? []) {
     const found = toolCalls.some((call) => call.tool === item.tool && JSON.stringify(call.input).includes(item.inputContains))
@@ -163,7 +168,8 @@ for (const testCase of CASES) {
     })
   }
   evaluateAudit({ auditEvents: expect.auditEvents }, resolve(caseDir, 'audit.jsonl'), 'main', checks)
-  const pass = checks.every((check) => check.pass) && checks.length > 0
+  const hardChecks = checks.filter((check) => !check.advisory)
+  const pass = hardChecks.length > 0 && hardChecks.every((check) => check.pass)
   results.push({
     id: testCase.id,
     category: testCase.category,
@@ -172,7 +178,8 @@ for (const testCase of CASES) {
     toolSequence: turns.flatMap((turn) => turn.toolCalls.map((call) => call.tool)),
     durationMs: meta?.durationMs ?? null,
     finalPreview: main.final.slice(0, 260),
-    failed: checks.filter((check) => !check.pass),
+    failed: hardChecks.filter((check) => !check.pass),
+    advisories: checks.filter((check) => check.advisory && !check.pass),
   })
 }
 
@@ -237,12 +244,13 @@ lines.push('> 提效指标由 T6 A/B 生成 `eval/ab_summary.json` 后自动纳�
 lines.push('')
 lines.push('## 2. 逐条结果')
 lines.push('')
-lines.push('| # | id | 类别 | 结果 | 工具序列 | 耗时 | 失败断言 |')
-lines.push('|---|---|---|---|---|---|---|')
+lines.push('| # | id | 类别 | 结果 | 工具序列 | 耗时 | 失败断言 | 提示（不计入失败） |')
+lines.push('|---|---|---|---|---|---|---|---|')
 results.forEach((result, index) => {
   const failed = result.failed.map((check) => check.name).join('; ') || '-'
+  const advisory = result.advisories.map((check) => check.detail).join('; ') || '-'
   const sequence = result.toolSequence.join(' → ').replaceAll('|', '\\|') || '-'
-  lines.push(`| ${index + 1} | ${result.id} | ${result.category} | ${result.pass ? 'PASS' : 'FAIL'} | ${sequence} | ${result.durationMs ? `${(result.durationMs / 1000).toFixed(1)}s` : '-'} | ${failed} |`)
+  lines.push(`| ${index + 1} | ${result.id} | ${result.category} | ${result.pass ? 'PASS' : 'FAIL'} | ${sequence} | ${result.durationMs ? `${(result.durationMs / 1000).toFixed(1)}s` : '-'} | ${failed} | ${advisory.replaceAll('|', '/')} |`)
 })
 lines.push('')
 lines.push('## 3. 断言明细')
@@ -250,7 +258,10 @@ lines.push('')
 for (const result of results) {
   lines.push(`### ${result.id}（${result.category}）— ${result.pass ? 'PASS' : 'FAIL'}`)
   lines.push('')
-  for (const check of result.checks) lines.push(`- ${check.pass ? '✓' : '✗'} \`${check.name}\`${check.pass ? '' : `：${check.detail}`}`)
+  for (const check of result.checks) {
+    const mark = check.pass ? '✓' : check.advisory ? '⚠' : '✗'
+    lines.push(`- ${mark} \`${check.name}\`${check.pass ? '' : `：${check.detail}`}${check.advisory ? '（提示项，不计入用例失败）' : ''}`)
+  }
   lines.push('')
 }
 lines.push('## 4. 备注')

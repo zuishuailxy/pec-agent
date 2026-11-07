@@ -2,7 +2,21 @@
 
 > 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见文末（自拟，非官方）。
 
-### v0.6（D1）· 2026-11-07
+#### v0.6.1（D1）· 2026-11-07 评测稳定性修复（用户复跑暴露）
+
+- **现象**：用户复跑 `bash eval/run.sh` 时 g-12 失败于 `toolsMaxExcludingSkill = 4 > 3`，技能复用率 0%、门禁非 0；准确率 11/12（91.7%）。
+- **定位（两个叠加原因）**：
+  1. **评测污染了交付技能**：用户复跑时 `eval/run.mjs` 尚未隔离技能目录，g-12 里模型调用 `skill_write(overwrite=true)` 把**手写的 `delay-small-standard` 覆盖成了模型生成版**（措辞与步骤变化 → 模型后续多调 `pricing_quote`，业务工具 4 步）。不是技能未命中（`skillHit` 始终通过）。
+  2. **步数检查被算作用例失败**：g-12 的“步数 ≤3”此前计入用例失败，单条抖动放大为技能指标 0%。
+- **修复（三项）**：
+  1. **恢复手写技能 A**（`git checkout` 回 T4/T5 的手写版）：3 步序列 + 护栏 + 反例，严格“不要额外调 pricing_quote/freight_calc”。
+  2. **评测隔离技能目录**：`eval/run.mjs` 为每条用例设置 `PEC_SKILLS_DIR=runs/eval/<id>/skills`，模型即使调 `skill_write` 也只写 case 目录，**不会污染交付的 `.dsh/skills/`**（夹具/审计/记忆同理隔离）。
+  3. **g-12 prompt 硬化 + 步数改为提示项（advisory）**：prompt 明确“严格按技能步骤执行，不要额外调用 pricing_quote/freight_calc 复算金额”；技能复用率按题面定义=命中比例，由 `skillHit` 判定；工具步数属**提效指标**，由 T6 A/B 严格测量，`collect.mjs` 中仅在报告“提示”列展示（`⚠`，不计入用例失败）。
+- **回归**：g-12 连跑 2 次业务工具稳定为 **3 步**（skill → order_lookup → contract_search → advice_card）；`node eval/collect.mjs --gate` → **12/12 通过**，准确率/引用可溯/记忆/技能/越权 100%，提效 pending（T6），退出码 0；把步数上限临时改成 1 验证 advisory：用例仍 12/12 PASS、门禁仍 0、报告出现“提示项”。
+- **操作提示**：日常手工对话中模型仍可能用 `skill_write(overwrite=true)` 更新技能；评测已隔离，交付前如需还原手写版：`git checkout -- .dsh/skills/delay-small-standard/SKILL.md`。
+- **口径说明**：准确率门禁按题面 ≥90%，11/12=91.7% 不触发门禁；技能 100%/记忆 80% 等的分母在 T6 专项集里会扩大（不再依赖单条用例）。
+
+## v0.6（D1）· 2026-11-07
 
 ### T5 golden set 12 条 + 批跑/统计/门禁
 

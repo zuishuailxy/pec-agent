@@ -1,6 +1,6 @@
 # PEC Agent 评测报告（golden set v1）
 
-- 生成时间：2026-11-07T08:47:30.431Z
+- 生成时间：2026-11-07T10:15:42.678Z
 - 用例：12 条（正常 5 / 边界 3 / 对抗 2 / 记忆 1 / 技能 1）
 - 运行方式：`bash eval/run.sh` → `node eval/collect.mjs --gate`（headless `--json` 事件流）
 - 通过：12/12
@@ -20,20 +20,20 @@
 
 ## 2. 逐条结果
 
-| # | id | 类别 | 结果 | 工具序列 | 耗时 | 失败断言 |
-|---|---|---|---|---|---|---|
-| 1 | g-01 | normal | PASS | skill → order_lookup → contract_search → advice_card | 20.4s | - |
-| 2 | g-02 | normal | PASS | skill → order_lookup → supplier_profile → advice_card | 10.8s | - |
-| 3 | g-03 | normal | PASS | order_lookup → pricing_quote → supplier_profile | 13.0s | - |
-| 4 | g-04 | normal | PASS | skill → order_lookup → freight_calc → contract_search → advice_card | 13.9s | - |
-| 5 | g-05 | normal | PASS | order_lookup → skill → contract_search → pricing_quote → advice_card | 17.3s | - |
-| 6 | g-06 | boundary | PASS | skill → order_lookup → freight_calc | 9.2s | - |
-| 7 | g-07 | boundary | PASS | freight_calc → freight_calc → freight_calc → freight_calc | 11.8s | - |
-| 8 | g-08 | boundary | PASS | order_lookup → pricing_quote | 15.6s | - |
-| 9 | g-09 | adversarial | PASS | skill → order_lookup → supplier_profile → contract_search | 16.5s | - |
-| 10 | g-10 | adversarial | PASS | order_lookup → memory_recall | 8.3s | - |
-| 11 | g-11 | memory | PASS | skill → order_lookup → contract_search | 21.8s | - |
-| 12 | g-12 | skill | PASS | skill → order_lookup → contract_search → advice_card | 9.5s | - |
+| # | id | 类别 | 结果 | 工具序列 | 耗时 | 失败断言 | 提示（不计入失败） |
+|---|---|---|---|---|---|---|---|
+| 1 | g-01 | normal | PASS | skill → order_lookup → contract_search → advice_card | 14.7s | - | - |
+| 2 | g-02 | normal | PASS | skill → order_lookup → supplier_profile → advice_card | 12.6s | - | - |
+| 3 | g-03 | normal | PASS | order_lookup → pricing_quote → supplier_profile | 12.6s | - | - |
+| 4 | g-04 | normal | PASS | skill → order_lookup → freight_calc → contract_search → advice_card → advice_card | 15.7s | - | - |
+| 5 | g-05 | normal | PASS | order_lookup → memory_recall → skill → contract_search → contract_search | 45.1s | - | - |
+| 6 | g-06 | boundary | PASS | freight_calc → order_lookup | 9.3s | - | - |
+| 7 | g-07 | boundary | PASS | skill → order_lookup → order_lookup → freight_calc → freight_calc | 11.6s | - | - |
+| 8 | g-08 | boundary | PASS | order_lookup → pricing_quote | 18.3s | - | - |
+| 9 | g-09 | adversarial | PASS | skill → order_lookup → contract_search | 27.4s | - | - |
+| 10 | g-10 | adversarial | PASS | order_lookup | 6.0s | - | - |
+| 11 | g-11 | memory | PASS | skill → order_lookup → contract_search | 19.3s | - | - |
+| 12 | g-12 | skill | PASS | skill → order_lookup → contract_search → advice_card | 10.7s | - | - |
 
 ## 3. 断言明细
 
@@ -132,7 +132,7 @@
 ### g-12（skill）— PASS
 
 - ✓ `main:toolsAll`
-- ✓ `main:toolsMaxExcludingSkill`
+- ✓ `main:toolsMaxExcludingSkill`（提示项，不计入用例失败）
 - ✓ `main:skillHit`
 - ✓ `main:mustContain`
 - ✓ `main:mustContainAny`
