@@ -44,12 +44,13 @@
 - **完成定义**：**98 passed / 0 failed**；headless 两轮：审计 `memory.injected count:3`（含 `会话记忆.lastOrderId="PO-20261013-0042"`），第 2 轮不再问订单号，直接查 `CL-07` 并算出 2,246.40（`runs/t3-memory-*.jsonl`）；`PEC_USER_ID=U-08` 下旧记忆不生效（断言通过）。
 - **验证命令**：`./dev/build.sh && node dev/test-tools.mjs`；`./dev/run-headless.sh --session-id <id> --json "处理 PO-20261013-0042 延迟"` → 同一 session 第二轮 `"那违约金多少"`。
 
-## T4 技能 A + `skill_write` + 技能 B（D1）
+## T4 技能 A + `skill_write` + 技能 B（D1，已完成）
 
-- [ ] `.dsh/skills/delay-small-standard/SKILL.md`：whenToUse 收窄、工具序列、护栏（≥5 万/黑名单升级、无条款不引用）、反例
-- [ ] `plugins/pec-tools/src/tools/skill-write.ts`：frontmatter/正文校验 + 目录白名单 + 审计；注册与 tool-surface 同步
-- [ ] 用一次真实成功对话让 Agent 沉淀 `.dsh/skills/stock-replenish/SKILL.md`，保存 `trace`
-- **完成定义**：两份技能能被 catalog 识别；技能 A 命中时工具步数 ≤3；技能 B 下次会话 `tool_call.skill` 命中；`skill_write` 对非法内容拒绝并审计。
+- [x] `.dsh/skills/delay-small-standard/SKILL.md`：whenToUse 收窄、3 步工具序列、护栏（≥5 万/黑名单升级、无条款不引用、NOT_FOUND 追问）、反例（3‰ 硬编码/承诺+8/0042 自动执行）
+- [x] `plugins/pec-tools/src/tools/skill-write.ts`：frontmatter/正文校验（护栏+反例必填）+ 目录白名单（防路径穿越）+ 覆盖保护 + 审计 `skill.written`；注册与 tool-surface 同步
+- [x] 用一次真实成功对话让 Agent 生成 `.dsh/skills/stock-replenish/SKILL.md`（3002 字节，审计 created=true），保存 trace
+- [x] `traces/skill-write/` + `traces/skill-hit/` 落盘（事件流 + 审计）+ `traces/README.md`
+- **完成定义**：**113 passed / 0 failed**；技能 A 命中（`tool_call skill` → 3 个业务工具）；技能 B 新会话命中（`tool_call skill(stock-replenish)`）；`skill_write` 对非法名字/缺护栏/缺反例/路径穿越全部拒绝并留痕；headless 证据见 `traces/`。
 - **验证命令**：`headless --json "PO-20260906-0114 延迟，按标准流程处理"`（技能 A 命中）；随后 `"PO-20260917-0129 缺货，按 stock-replenish"`（技能 B 命中）。
 
 ## T5 评测集与门禁（D1）

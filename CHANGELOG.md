@@ -2,7 +2,34 @@
 
 > 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见文末（自拟，非官方）。
 
-### v0.4.1（D1）· 2026-11-07 文档/演示修复（非实现 bug）
+### v0.5（D1）· 2026-11-07
+
+### T4 技能 A（手写）+ `skill_write` + 技能 B（Agent 沉淀）
+
+- **技能 A** `.dsh/skills/delay-small-standard/SKILL.md`（手写）：
+  - `whenToUse` 收窄为“交期延迟 + 金额 <50,000.00 + 供应商非黑名单”；正文给 3 步出卡序列（`order_lookup` → `contract_search("违约金")` → `advice_card`），明确工具参数来源；
+  - 护栏：金额 ≥5 万/黑名单 → 只取证、必须升级人工；条款无命中 → 不得引用；`NOT_FOUND` → 追问不猜；`delayDays=0/状态非 DELAYED` → 回退通用流程；
+  - 反例：3‰ 不得硬编码（CL-07=3‰ / CL-45=1‰ / CL-01=2‰）、不得用“承诺+8”算 newDate、0042（57,600）不得自动执行、不得跨异常类型套用。
+- **`skill_write` 工具**（第 12 个工具）：
+  - 校验：name kebab-case、description/whenToUse 必填、正文必须含「护栏」与「反例」段落、正文 ≥100 字符；已存在时需 `overwrite=true`；
+  - 边界：只允许写 `<project>/.dsh/skills/<name>/SKILL.md`，拒绝路径穿越；`PEC_SKILLS_DIR` 可覆盖目录（测试/隔离）；
+  - 留痕：每次落盘写审计 `skill.written`（name/path/bytes/created/sessionId/userId/tenantId）；render 展示 frontmatter 与结构校验结果；
+  - 接线：`index.ts` / `business.ts` / `policy/tool-surface.ts` / `dev/build.sh` + 重编译。
+- **技能 B** `.dsh/skills/stock-replenish/SKILL.md`（**由 Agent 在真实成功对话中生成并落盘**）：
+  - 触发：缺货/当前+在途 < 安全库存；序列：`order_lookup` 取四项库存事实 → 计算 `raw=安全×2−当前−在途` → 向上取整到 MOQ 倍数 → `supplier_profile` 核验黑名单 → `advice_card(action=replenish)`；
+  - 护栏：在途必须计入、MOQ 缺失/≤0 终止、只向上取整、黑名单强制人工、历史工单不得覆盖当前事实；反例含“漏在途 200 → 错补 500”等；
+  - 证据：审计 `skill.written`（3002 字节，created=true）；下一会话 `tool_call skill(stock-replenish)` 命中并输出补货量 1000。
+- **回归证据**：`node dev/test-tools.mjs` → **113 passed / 0 failed**（T3 后 98 → +15 条：合法写入/frontmatter/覆盖保护/非法名/缺护栏/缺反例/正文过短/缺 description/路径穿越/落盘留痕/lossless JSON/工具面）。
+- **headless 证据**（已复制进 `traces/`）：
+  - 技能 A 命中：`traces/skill-hit/skill-a-hit.jsonl`（`skill` → `order_lookup` → `contract_search` → `advice_card`；CL-45 1‰、5,239.50、newDate 2026-10-18、审批自动）；
+  - 技能 B 生成：`traces/skill-write/skill-b-generated.jsonl`；命中：`traces/skill-hit/skill-b-hit.jsonl`（补货 1000、黑名单强制人工）。
+
+### 操作提示
+
+- 技能文件变化由平台 watcher 自动生效；headless 每次新会话启动即扫描 `.dsh/skills/`，无需重启。
+- 本机 `dsh --session-id` 只能续已存在会话；两轮演示脚本 `dev/demo-memory.sh` 已封装。
+
+## v0.4.1（D1）· 2026-11-07 文档/演示修复（非实现 bug）
 
 - **现象**：用户复测记忆时，第 1 轮命令用了报告里被省略号截断的 prompt（“记录一下：…调用 memory_remember 写入会话记忆…”），第 2 轮报“当前会话和用户记忆都是空的”。
 - **诊断**（解压 Session 事件流 + 审计核对）：

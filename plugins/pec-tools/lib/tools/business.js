@@ -6,6 +6,7 @@ import { contractSearch } from "./contract-search.js";
 import { ticketSimilar } from "./ticket-similar.js";
 import { adviceCard } from "./advice-card.js";
 import { memoryRecall, memoryRemember, memoryForget } from "./memory-tools.js";
+import { skillWrite } from "./skill-write.js";
 export {
   adviceCard,
   contractSearch,
@@ -15,6 +16,7 @@ export {
   memoryRemember,
   orderLookup,
   pricingQuote,
+  skillWrite,
   supplierProfile,
   ticketSimilar
 };

@@ -161,7 +161,7 @@ resolveIdentity(sessionId?): { userId, tenantId, role }
 | 6 | `ticket_similar`（ticket.similar） | 读 | 异常类型+供应商+金额区间召回；规则相似度；按订单去重；provenance | ✅ D1 |
 | 7 | `advice_card` | 校验 | 建议卡：R7 审批、黑名单、evidence 存在性、newDate 确定性重算 | ✅ D1 |
 | 8 | `memory_recall/remember/forget` | 读写 | 两层记忆白名单、TTL、冲突 history、撤销、来源留痕 | ✅ D1 |
-| 9 | `skill_write` | 写 | 技能落盘：frontmatter/护栏/反例校验 + 目录白名单 + 审计 | 计划 T4 |
+| 9 | `skill_write` | 写 | 技能落盘：frontmatter/护栏/反例校验 + 目录白名单 + 审计 | ✅ D1 |
 
 ### 4.2 错误语义
 
@@ -284,7 +284,7 @@ score = 100                                     if blacklisted
 
 - **技能 A（手写）`delay-small-standard`**：覆盖最常见“交期延迟 + 金额 <5 万 + 非黑名单”的标准处置；`whenToUse` 收窄；正文只写“调哪个工具、传什么参数、什么情况停手”；独立“护栏”段（≥5 万或黑名单 → 只取证不自动给建议、升级主管；无条款 → 写未检索到、不引用）；“反例”段（3‰ 不得硬编码——CL-45 是 1‰；不得引用未检索到的条款）。
   - **题面冲突处理**：题面技能 A 的 `whenToUse` 写 <5 万，但示例用 57,600 的 0042 → 本实现把 0042 作为“取证示范”，护栏显式升级，避免口径矛盾。
-- **技能 B（沉淀）`stock-replenish`**：由一次真实成功对话经 `skill_write` 工具落盘（frontmatter 校验 + 护栏/反例必填 + 目录白名单 + 审计），保存生成 trace；下次会话通过 `skill` 工具加载命中并缩短工具序列。
+- **技能 B（沉淀）`stock-replenish`（D1 已生成并验证）**：由一次真实成功对话经 `skill_write` 工具落盘（frontmatter 校验 + 护栏/反例必填 + 目录白名单 + 审计），生成 trace `traces/skill-write/`；下一会话 `tool_call skill(stock-replenish)` 命中，补货量 1000、黑名单强制人工，证据 `traces/skill-hit/`。
 - **护栏强度**：技能正文只是文本，无强制力（dsh-api-notes §4.6）→ 硬约束一律落到 `advice_card`/guard：金额阈值、黑名单、证据存在性由工具统一校验，技能文本失效也不越界（R14）。
 - **观测**：技能复用率 = trace 中出现 `tool_call.skill` / 任务数；未命中记 `fallback`；A/B 主指标为工具调用步数（技能文本会抬高 token，不选 token 作主指标）。
 
@@ -415,6 +415,6 @@ bash eval/run.sh && node eval/collect.mjs --gate
 
 ## 14. 交付状态与已知缺口
 
-- **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 历史召回）+ `advice_card` 建议卡 + 3 个记忆工具与每轮注入；guard/审计/脱敏/工具面；定点金额与 provenance；`plan.md/todo.md/design.md/CHANGELOG.md/memory/extract.md`；工具冒烟 **98 passed**；headless 端到端：订单查询、历史工单召回、建议卡（含条款证据）、两轮记忆（第 2 轮不重复提问）。
-- **计划中**：技能 A/B + `skill_write`（T4）、评测/门禁（T5）、专项集/A-B（T6）、traces（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
+- **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 历史召回）+ `advice_card` 建议卡 + 3 个记忆工具与每轮注入 + `skill_write`；技能 A（手写 `delay-small-standard`）与技能 B（Agent 沉淀 `stock-replenish`）均命中验证；guard/审计/脱敏/工具面；定点金额与 provenance；`plan.md/todo.md/design.md/CHANGELOG.md/memory/extract.md/traces/`；工具冒烟 **113 passed**；headless 端到端：订单查询、历史召回、建议卡、两轮记忆、技能沉淀与命中。
+- **计划中**：评测/门禁（T5）、专项集/A-B（T6）、traces 补齐 qa/memory（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
 - **已知缺口（题面/数据造成，已声明）**：R8 汇率不可实现；R11 成本价字段不存在；R9 风险分自定；R10 等值边界 0 样本；R7 ≥20 万 0 样本；状态机仅 3/5 状态有样本。

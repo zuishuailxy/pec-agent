@@ -24,6 +24,7 @@ export const PEC_TOOLS = [
   'memory_recall',
   'memory_remember',
   'memory_forget',
+  'skill_write',
   // 注意：restrict 会对未知工具名抛错；新增工具实现后必须同步加到这里再重编译。
   // skill 加载工具必须保留，否则技能机制不可用
   'skill',

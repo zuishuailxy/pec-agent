@@ -27,6 +27,7 @@ ESBUILD="$ROOT/dev/node_modules/.bin/esbuild"
   plugins/pec-tools/src/tools/ticket-similar.ts \
   plugins/pec-tools/src/tools/advice-card.ts \
   plugins/pec-tools/src/tools/memory-tools.ts \
+  plugins/pec-tools/src/tools/skill-write.ts \
   plugins/pec-tools/src/memory/inject.ts \
   plugins/pec-tools/src/memory/store.ts \
   --outbase=plugins/pec-tools/src \

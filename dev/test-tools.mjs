@@ -204,6 +204,43 @@ ok('memory 撤销后不再命中', memR3?.data?.session === null)
 const memF2 = await run('mem-forget-user', mem.memoryForget, { scope: 'user', confirm: true }, execT3)
 ok('memory 撤销用户记忆', memF2?.data?.deleted === true, JSON.stringify(memF2?.data))
 
+// ---------- skill_write（T4）：结构校验 / 路径安全 / 覆盖保护 / 落盘审计 ----------
+const skill = tools.skillWrite
+const { existsSync: existsFs, readFileSync: readFs, rmSync } = await import('node:fs')
+const SKILLS_TMP = '/tmp/pec-skills-test'
+rmSync(SKILLS_TMP, { recursive: true, force: true })
+process.env.PEC_SKILLS_DIR = SKILLS_TMP
+const goodBody = `# 补货测试技能\n\n1. 调 order_lookup 取 safety_stock / on_hand / in_transit / moq。\n2. 计算 (safety×2 − on_hand − in_transit) 并向上取整到 MOQ 整数倍。\n3. 调 advice_card 输出补货建议卡，金额与审批路径以工具返回为准。\n\n## 护栏\n\n- 当前+在途 = 安全库存时不触发；只有小于才触发。\n- moq=0 返回 E_DIV_ZERO，不得返回 0。\n\n## 反例\n\n- ❌ 用四舍五入代替向上取整，导致补货量少一个 MOQ。`
+const validDraft = { name: 'stock-test', description: '测试技能：补货标准流程', whenToUse: '异常类型为缺货且供应商非黑名单时使用', body: goodBody }
+
+const skillValid = await run('skill-validate', skill, validDraft)
+ok('skill_write 合法写入', skillValid?.data?.created === true && existsFs(SKILLS_TMP + '/stock-test/SKILL.md'), JSON.stringify(skillValid?.data?.path))
+const written = existsFs(SKILLS_TMP + '/stock-test/SKILL.md') ? readFs(SKILLS_TMP + '/stock-test/SKILL.md', 'utf8') : ''
+ok('skill_write frontmatter 正确', /^---\nname: stock-test\ndescription: 测试技能/.test(written) && /whenToUse:/.test(written), written.slice(0, 120))
+ok('skill_write 返回结构校验结果', skillValid?.data?.hasGuardrail === true && skillValid?.data?.hasCounterExample === true, JSON.stringify(skillValid?.data))
+
+const noOverwrite = await run('skill-no-overwrite', skill, validDraft)
+ok('skill_write 已存在需 overwrite', noOverwrite?.__error?.code === 'INVALID_ARGUMENT' && /overwrite/.test(noOverwrite?.__error?.message ?? ''), JSON.stringify(noOverwrite?.__error?.message))
+const overwrite = await run('skill-overwrite', skill, { ...validDraft, overwrite: true })
+ok('skill_write overwrite=true 覆盖', overwrite?.data?.created === false && overwrite?.data?.overwritten === true, JSON.stringify(overwrite?.data))
+
+for (const [name, draft, pattern] of [
+  ['skill 非法名字', { ...validDraft, name: 'Bad_Name' }, /kebab-case/],
+  ['skill 缺失护栏', { ...validDraft, name: 'no-guard', body: goodBody.replace('## 护栏', '## 其他') }, /护栏/],
+  ['skill 缺失反例', { ...validDraft, name: 'no-counter', body: goodBody.replace('## 反例', '## 其他') }, /反例/],
+  ['skill 正文过短', { ...validDraft, name: 'too-short', body: '## 护栏\n- 停手\n## 反例\n- 错' }, /过短/],
+  ['skill 缺 description', { ...validDraft, name: 'no-desc', description: '' }, /description/],
+]) {
+  const bad = await run(name, skill, draft)
+  ok(name + ' → INVALID_ARGUMENT', bad?.__error?.code === 'INVALID_ARGUMENT' && pattern.test(bad?.__error?.message ?? ''), JSON.stringify(bad?.__error?.message))
+}
+// 路径穿越：名字带斜杠/点点必须被拒绝，且不能写出目录
+const traverse = await run('skill-traverse', skill, { ...validDraft, name: '../evil' })
+ok('skill_write 防路径穿越', traverse?.__error?.code === 'INVALID_ARGUMENT', JSON.stringify(traverse?.__error?.message))
+let skillAudit = ''
+try { skillAudit = readFs('/tmp/pec-audit-test.jsonl', 'utf8') } catch {}
+ok('skill_write 落盘留痕', skillAudit.includes('skill.written'), skillAudit.slice(-200))
+
 // 平台 lossless JSON 回归：所有工具返回 value 与其 render 输出都不得含 undefined
 for (const [name, value] of [
   ['contract_search', clause07?.data],
@@ -216,6 +253,7 @@ for (const [name, value] of [
   ['advice_card', card1?.data],
   ['memory_recall', memR1?.data],
   ['memory_remember', memS1?.data],
+  ['skill_write', skillValid?.data],
 ]) {
   ok('lossless JSON: ' + name, findUndefined(value) === null, String(findUndefined(value)))
 }
@@ -223,6 +261,7 @@ for (const [name, tool, value] of [
   ['contract_search', tools.contractSearch, clause07],
   ['freight_calc', tools.freightCalc, freight],
   ['advice_card', tools.adviceCard, card1],
+  ['skill_write', tools.skillWrite, skillValid],
 ]) {
   const rendered = tool.output.render({}, value)
   ok('lossless JSON render: ' + name, findUndefined(rendered) === null, String(findUndefined(rendered)))
@@ -231,7 +270,7 @@ for (const [name, tool, value] of [
 const plugin = await import('../plugins/pec-tools/lib/index.js')
 const surface = await import('../plugins/pec-tools/lib/policy/tool-surface.js')
 ok('advice_card 已注册到入口', plugin.inject?.includes?.('tools'), JSON.stringify(plugin.inject))
-for (const name of ['advice_card', 'memory_recall', 'memory_remember', 'memory_forget']) {
+for (const name of ['advice_card', 'memory_recall', 'memory_remember', 'memory_forget', 'skill_write']) {
   ok(name + ' 在工具面 allow 列表', surface.PEC_TOOLS.includes(name), JSON.stringify(surface.PEC_TOOLS))
 }
 
