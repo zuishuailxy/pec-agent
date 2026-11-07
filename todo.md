@@ -34,13 +34,13 @@
 - **完成定义**：**79 passed / 0 failed**；headless 端到端建议卡（5 次工具调用，含 `CL-07` 证据、`采购主管`、`newDate 2026-11-16`），见 `runs/t2-advice-card.jsonl`。
 - **验证命令**：`./dev/build.sh && node dev/test-tools.mjs`；headless 让 Agent 处理 0042 并输出建议卡。
 
-## T3 记忆工具与每轮注入（D1）
+## T3 记忆工具与每轮注入（D1，已完成）
 
-- [ ] `plugins/pec-tools/src/tools/memory-tools.ts`：`memory_recall` / `memory_remember` / `memory_forget`（白名单、TTL、冲突 history、confirm、审计）
-- [ ] `plugins/pec-tools/src/memory/inject.ts`：`ctx.systemPrompt.section` 每 step 注入 3–5 条（`interpolate:false`、同步、空记忆返回 `''`、异常降级不抛）；`inject` 兼容可选 `systemPrompt`
-- [ ] 会话记忆补写（`ticket_similar` / `advice_card`）；`memory/extract.md` 写白名单与抽取/冲突规则
-- [ ] `index.ts` / `business.ts` / `build.sh` / tool-surface 同步；`dev/test-tools.mjs` 补记忆读写/隔离/TTL/白名单测试
-- **完成定义**：两轮 headless 第二轮不再问订单号（事件流证据）；`PEC_USER_ID=U-08` 下旧记忆不生效；注入文本出现 `会话记忆.lastOrderId`。
+- [x] `plugins/pec-tools/src/tools/memory-tools.ts`：`memory_recall` / `memory_remember` / `memory_forget`（白名单拒绝非白名单字段、TTL、冲突 history、confirm、审计、来源如实记录）
+- [x] `plugins/pec-tools/src/memory/inject.ts`：`ctx.systemPrompt.section` 每 step 注入 3–5 条（`interpolate:false`、同步、空记忆返回 `''`、异常降级不抛）；`systemPrompt` 用 `ctx.get()` 可选挂载
+- [x] 会话记忆补写（`ticket_similar` / `advice_card`）；`memory/extract.md` 写白名单与抽取/冲突/注入规则
+- [x] `index.ts` / `business.ts` / `build.sh` / tool-surface 同步；`dev/test-tools.mjs` 补记忆读写/隔离/撤销/白名单/更正留痕测试
+- **完成定义**：**98 passed / 0 failed**；headless 两轮：审计 `memory.injected count:3`（含 `会话记忆.lastOrderId="PO-20261013-0042"`），第 2 轮不再问订单号，直接查 `CL-07` 并算出 2,246.40（`runs/t3-memory-*.jsonl`）；`PEC_USER_ID=U-08` 下旧记忆不生效（断言通过）。
 - **验证命令**：`./dev/build.sh && node dev/test-tools.mjs`；`./dev/run-headless.sh --session-id <id> --json "处理 PO-20261013-0042 延迟"` → 同一 session 第二轮 `"那违约金多少"`。
 
 ## T4 技能 A + `skill_write` + 技能 B（D1）

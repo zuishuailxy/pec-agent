@@ -85,7 +85,7 @@ function pickUserFields(patch) {
   }
   return picked;
 }
-function rememberSession(identity, sessionId, patch) {
+function rememberSession(identity, sessionId, patch, source = "tool_inference") {
   const store = loadStore();
   const key = sessionKey(identity, sessionId);
   const current = store.sessions[key];
@@ -108,7 +108,7 @@ function rememberSession(identity, sessionId, patch) {
     event: "memory.session.updated",
     key,
     fields: Object.keys(patch).filter((key2) => SESSION_FIELDS.includes(key2)),
-    source: "tool_inference"
+    source
   });
   return next;
 }

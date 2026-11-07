@@ -5,10 +5,14 @@ import { freightCalc } from "./freight-calc.js";
 import { contractSearch } from "./contract-search.js";
 import { ticketSimilar } from "./ticket-similar.js";
 import { adviceCard } from "./advice-card.js";
+import { memoryRecall, memoryRemember, memoryForget } from "./memory-tools.js";
 export {
   adviceCard,
   contractSearch,
   freightCalc,
+  memoryForget,
+  memoryRecall,
+  memoryRemember,
   orderLookup,
   pricingQuote,
   supplierProfile,

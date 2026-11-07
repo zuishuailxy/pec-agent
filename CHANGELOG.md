@@ -2,6 +2,23 @@
 
 > 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见文末（自拟，非官方）。
 
+## v0.4（D1）· 2026-11-07
+
+### T3 记忆工具与每轮注入
+
+- **新增 3 个工具**（工具总数 8 → 11，均同步 `index.ts` / `business.ts` / `policy/tool-surface.ts` / `dev/build.sh`）：
+  - `memory_recall`：读会话/用户两层记忆（白名单字段）、TTL、用户更正 history，返回 3–5 条 `injected` 建议；空记忆不报错。
+  - `memory_remember`：写白名单字段（会话 ≤8 / 用户 ≤5）；**白名单外字段直接 `INVALID_ARGUMENT`**（不静默丢弃）；`source=user_correction` 覆盖并写 history；会话记忆如实记录来源（`tool_inference` / `user_correction`）。
+  - `memory_forget`：撤销整层键，必须 `confirm=true`（防误删），删除写审计。
+- **每轮注入** `memory/inject.ts`：`ctx.systemPrompt.section({ name:'pec:memory', order:10050, interpolate:false, text:(context)=>… })`。已核实 0.2.1-rc.2 的 `assemble()` 支持函数型 `text`（每个 proposed step 前求值一次）；`systemPrompt` 通过 `ctx.get()` 可选获取，缺失时降级并写 `memory.inject.unavailable`；`text()` 全 try/catch、永不抛错、空记忆返回 `''`。
+- **可观测**：每个会话首次注入写审计 `memory.injected`（含 `items`），`memory_recall` 写 `memory.recalled`；记忆写入/撤销/过期/脱敏均落同一 JSONL。
+- **文档**：新增 `memory/extract.md`（白名单、抽取时机、冲突合并、注入规则、隔离/过期、工具接口、验证命令与证据）。
+- **回归证据**：`node dev/test-tools.mjs` → **98 passed / 0 failed**（T2 后 79 → +19 条：白名单拒绝、两层写入、用户更正合并+history、3–5 条注入、会话/用户隔离、撤销、跨租户隔离、lossless JSON、工具面）。
+- **headless 两轮证据**（`runs/t3-memory-turn1.jsonl`、`t3-memory-turn2.jsonl`、`t3-memory-audit.jsonl`）：
+  - 第 1 轮 `memory_remember` 写入 `lastOrderId/lastSupplierId/lastExceptionType`；审计 `memory.injected count:3`，`items` 含 `会话记忆.lastOrderId="PO-20261013-0042"`；
+  - 第 2 轮（同一 `--session-id`）用户只问“那违约金多少？”，模型**未重复询问订单号**，直接 `order_lookup(0042)` → `contract_search(SUP-1042,"违约金")` → 命中 `CL-07` 并算出 2,246.40。
+- **操作提示**：`dsh --session-id` 要求会话已存在；演示第 1 轮先不带 `--session-id`，从 `session` 事件取 `sessionId`，第 2 轮再传入。
+
 ## v0.3（D1）· 2026-11-07
 
 ### T2 `advice_card` 建议卡（第 8 个业务工具）
@@ -50,7 +67,11 @@
 
 - **决定**：`advice_card` 对 `action=reschedule` 的 `newDate` 统一按 **实际交期（delivered_at）+ 14 天** 确定性重算（0042 → 2026-11-16；`delivered_at` 为空时回退承诺交期+14 并标 `newDateSource`），忽略模型传入值。
 - **依据**：任务书 §6.1 技能样例第 5 条“newDate=实际交期+14 天”；用户明确倾向题面样例技能口径。
-- **已知不一致**：任务书 §5.3 建议卡示例与历史工单 `EX-2061` 的 outcome 均为 `2026-10-28`（=承诺交期 10-20 + 8）。这是题面内部/数据层的不一致，不是实现错误；按用户决定以样例技能口径为准，评测断言以“实际交期+14”为期望值。
+- **已知不一致（已量化，2026-11-07 复核）**：任务书 §5.3 建议卡示例与历史工单 `EX-2061` 的 outcome 均为 `2026-10-28`（=承诺交期 10-20 + 8）。
+  - 数据侧：28 条工单中**仅 `EX-2061` 1 条** outcome 含显式改期日；其余 27 条只写“改期至下一个可用交期/触发补货/拆单/系统建议已生成”等泛化结论，**无法比对**。
+  - 文档侧：题面 2 处互相冲突（§5.3 示例卡=10-28；§6.1 样例技能=实际交期+14）。
+  - 反向验证：若改“承诺交期+8”，38 条 DELAYED 订单中有 **24 条（63%）** 的改期日会早于实际交付（0042 的 10-28 早于 11-02），语义不成立。
+  - 结论：不一致数据只有 1 条，**不改为 +8**，维持“实际交期+14”；评测断言以该口径为期望值，且不把 EX-2061 的历史日期当作标准答案。
 - **影响面**：`advice_card`（T2）+ 技能 A 正文（T4）+ golden set 断言（T5）+ A/B 结论五元组（T6）；`ticket_similar` 不受影响。
 - **替代方案（未选）**：承诺交期+8 天（0042→10-28，与历史工单和 §5.3 示例一致）；因用户明确选择题面样例技能口径而放弃。
 - **新增文档**：`design.md`（必交交付物，含架构/取舍/口径/验收映射）。

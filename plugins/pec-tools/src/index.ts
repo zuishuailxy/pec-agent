@@ -1,8 +1,9 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { installGuard } from './policy/guard.js'
 import { installToolSurface } from './policy/tool-surface.js'
+import { installMemoryInjection } from './memory/inject.js'
 import { catalogTool } from './tools/catalog.js'
-import { orderLookup, supplierProfile, pricingQuote, freightCalc, contractSearch, ticketSimilar, adviceCard } from './tools/business.js'
+import { orderLookup, supplierProfile, pricingQuote, freightCalc, contractSearch, ticketSimilar, adviceCard, memoryRecall, memoryRemember, memoryForget } from './tools/business.js'
 
 export const name = '@pec/pec-tools'
 
@@ -10,9 +11,22 @@ export const name = '@pec/pec-tools'
 export const inject = ['tools']
 
 export function apply(ctx: Context) {
-  for (const tool of [catalogTool, orderLookup, supplierProfile, pricingQuote, freightCalc, contractSearch, ticketSimilar, adviceCard]) {
+  for (const tool of [
+  catalogTool,
+  orderLookup,
+  supplierProfile,
+  pricingQuote,
+  freightCalc,
+  contractSearch,
+  ticketSimilar,
+  adviceCard,
+  memoryRecall,
+  memoryRemember,
+  memoryForget,
+]) {
     ctx.tools.register(tool)
   }
   installGuard(ctx)
   installToolSurface(ctx)
+  installMemoryInjection(ctx)
 }

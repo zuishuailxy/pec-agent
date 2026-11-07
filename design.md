@@ -160,7 +160,7 @@ resolveIdentity(sessionId?): { userId, tenantId, role }
 | 5 | `contract_search`（contract.search） | 读 | FTS5 trigram + 同义词 + LIKE 回退；无命中明确“未检索到”；合同原文按角色 | ✅ |
 | 6 | `ticket_similar`（ticket.similar） | 读 | 异常类型+供应商+金额区间召回；规则相似度；按订单去重；provenance | ✅ D1 |
 | 7 | `advice_card` | 校验 | 建议卡：R7 审批、黑名单、evidence 存在性、newDate 确定性重算 | ✅ D1 |
-| 8 | `memory_recall/remember/forget` | 读写 | 两层记忆白名单、TTL、冲突、撤销 | 计划 T3 |
+| 8 | `memory_recall/remember/forget` | 读写 | 两层记忆白名单、TTL、冲突 history、撤销、来源留痕 | ✅ D1 |
 | 9 | `skill_write` | 写 | 技能落盘：frontmatter/护栏/反例校验 + 目录白名单 + 审计 | 计划 T4 |
 
 ### 4.2 错误语义
@@ -269,13 +269,14 @@ score = 100                                     if blacklisted
 - 可变事实（金额/数量）不进入画像白名单，避免过期值被当当前值。
 - 抽取：工具侧自动写会话记忆（`order_lookup` 写订单/供应商/SKU；`ticket_similar` 写工单/类型；`advice_card` 写动作），用户更正走 `memory_remember({source:'user_correction'})`；`memory/extract.md` 写规则与示例。
 
-### 6.2 注入
+### 6.2 注入（D1 已实现并验证）
 
 - 每 step 通过 `ctx.systemPrompt.section({ name:'pec:memory', order:10050, interpolate:false, text:(ctx)=>… })` 求值（0.2.1 的 `text` 支持函数，等于“每轮执行一次”钩子）；
 - 只注入与当前任务相关的 3–5 条（优先当前订单/供应商/品类 + 用户偏好），不整包塞回上下文，避免 token 失控；
 - 硬约束：`text()` 同步、不得抛错、不得返回 `undefined`（返回 `''` 表示本段不出现）、`interpolate:false`；
 - `systemPrompt` 用可选依赖方式挂载（`ctx.get('systemPrompt')`），缺失时降级不阻断 agent 创建。
 - 命中率口径（评测）：第 2 轮起不重复提问的对话比例 ≥80%，专项集 5 对固化。
+- **已实现证据**：两轮 headless 中审计出现 `memory.injected count:3`（`items` 含 `会话记忆.lastOrderId="PO-20261013-0042"`），第 2 轮用户只问“那违约金多少？”时模型直接 `order_lookup(0042)` → `contract_search(SUP-1042,"违约金")`，未重复询问订单号（`runs/t3-memory-*.jsonl`）。
 
 ---
 
@@ -331,12 +332,22 @@ score = 100                                     if blacklisted
 | 7 | `tickets` 无 supplier/金额/相似度 | join orders 派生；相似度规则分（§4.4） |
 | 8 | 16/28 工单集中在 0129 | 按订单聚合展示 + 保留去重前计数（§4.4） |
 | 9 | `SUP-1047` 无合同、5/8 A/B 无 penalty | “未检索到”分支 + 技能护栏禁止编造条款 |
-| 10 | 建议卡 `newDate` 冲突 | **取题面样例技能口径：实际交期+14 天**（0042→2026-11-16）；历史 `EX-2061` 的 10-28 记为数据/文档不一致，CHANGELOG 记录 |
+| 10 | 建议卡 `newDate` 冲突 | **取题面样例技能口径：实际交期+14 天**（0042→2026-11-16；`delivered_at` 为空回退承诺+14）。量化依据见下方「newDate 决策量化」：显式改期日历史仅 1/28 条，且改用 +8 会让 24/38 延迟单的改期日早于实际交付 |
 | 11 | README 80 单实际 79；`delivered_at` 空仅 0099 | 以 79 为准；NULL 容忍只用 0099 |
 | 12 | OPEN/SHIPPED 0 样本 | 文档声明状态分支仅覆盖 CLOSED/DELAYED/DRAFT |
 | 13 | 工具名带点 → API 400 | 全部下划线（映射见 §13） |
 | 14 | 税率无字段 | `PEC_VAT_RATE` 默认 0.13，标注 `assumption:` |
 | 15 | headless `ask`=deny | 人工确认 = 建议卡 `needHuman` + 审计 |
+
+
+### newDate 决策量化（2026-11-07 复核）
+
+| 口径 | 与数据一致 | 与文档一致 | 语义问题 |
+|---|---|---|---|
+| 实际交期+14（采用） | 28 条工单中仅 `EX-2061`（1 条）outcome 含显式改期日 `2026-10-28`，与本口径不一致；其余 27 条只写“改期至下一个可用交期/触发补货/拆单”等泛化结论，无法比对 | 与题面 §6.1 样例技能“newDate=实际交期+14 天”一致；与 §5.3 示例卡 `2026-10-28` 冲突 | 改期日恒晚于实际交付（38/38） |
+| 承诺交期+8（未采用） | 与 `EX-2061` 的 10-28 一致（0042：10-20+8） | 与 §5.3 示例卡一致；与 §6.1 样例技能冲突 | 24/38 条 DELAYED 订单的“承诺+8”会**早于实际交付**（改期日落在交付前，语义不成立；如 0042 的 10-28 早于 11-02） |
+
+结论：**显式改期日数据只有 1 条**，不构成“数据太多”；而 +8 口径会与题面样例技能文本冲突，并在 63% 延迟单上产生“改期日早于实际交付”的语义问题。故按用户要求“如果太多才改 +8”的判断，**维持实际交期+14**，并在 CHANGELOG 记录该偏差。
 
 ---
 
@@ -389,9 +400,9 @@ cd pec-agent
 ./dev/build.sh && node dev/test-tools.mjs        # 工具级冒烟（不需要模型）
 ./dev/run-headless.sh --json "调用 order_lookup 查询订单 PO-20261013-0042 的承诺交期、实际交期、延迟天数和状态；最后一行写数据来源"
 ./dev/run-headless.sh --json "调用 ticket_similar 查询异常类型 DELAY、供应商 SUP-1050、金额上限 10000 的历史工单"
-# 多轮记忆（T3 后）：
-./dev/run-headless.sh --session-id <id> --json "处理 PO-20261013-0042 延迟"
-./dev/run-headless.sh --session-id <id> --json "那违约金多少"
+# 多轮记忆：第 1 轮不带 --session-id，从 session 事件取 sessionId；第 2 轮传入
+./dev/run-headless.sh --json "记录一下：当前处理订单 PO-20261013-0042（供应商 SUP-1042，交期延迟），请写入会话记忆"
+./dev/run-headless.sh --session-id <第 1 轮 sessionId> --json "那违约金多少"
 # 评测（T5 后）：
 bash eval/run.sh && node eval/collect.mjs --gate
 ```
@@ -404,6 +415,6 @@ bash eval/run.sh && node eval/collect.mjs --gate
 
 ## 14. 交付状态与已知缺口
 
-- **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 通知召回）+ `advice_card` 建议卡；guard/审计/脱敏/工具面；定点金额与 provenance；`plan.md/todo.md/design.md/CHANGELOG.md`；工具冒烟 **79 passed**；headless 端到端：订单查询、历史工单召回、建议卡（含条款证据）。
-- **计划中**：记忆工具与注入（T3）、技能 A/B + `skill_write`（T4）、评测/门禁（T5）、专项集/A-B（T6）、traces（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
+- **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 历史召回）+ `advice_card` 建议卡 + 3 个记忆工具与每轮注入；guard/审计/脱敏/工具面；定点金额与 provenance；`plan.md/todo.md/design.md/CHANGELOG.md/memory/extract.md`；工具冒烟 **98 passed**；headless 端到端：订单查询、历史工单召回、建议卡（含条款证据）、两轮记忆（第 2 轮不重复提问）。
+- **计划中**：技能 A/B + `skill_write`（T4）、评测/门禁（T5）、专项集/A-B（T6）、traces（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
 - **已知缺口（题面/数据造成，已声明）**：R8 汇率不可实现；R11 成本价字段不存在；R9 风险分自定；R10 等值边界 0 样本；R7 ≥20 万 0 样本；状态机仅 3/5 状态有样本。

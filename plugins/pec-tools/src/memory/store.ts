@@ -138,7 +138,12 @@ function pickUserFields(patch: Record<string, unknown>): Partial<Record<UserFiel
   return picked
 }
 
-export function rememberSession(identity: Identity, sessionId: string | undefined, patch: Record<string, unknown>): SessionMemory {
+export function rememberSession(
+  identity: Identity,
+  sessionId: string | undefined,
+  patch: Record<string, unknown>,
+  source: 'tool_inference' | 'user_correction' = 'tool_inference',
+): SessionMemory {
   const store = loadStore()
   const key = sessionKey(identity, sessionId)
   const current = store.sessions[key]
@@ -161,7 +166,7 @@ export function rememberSession(identity: Identity, sessionId: string | undefine
     event: 'memory.session.updated',
     key,
     fields: Object.keys(patch).filter((key) => (SESSION_FIELDS as readonly string[]).includes(key)),
-    source: 'tool_inference',
+    source,
   })
   return next
 }

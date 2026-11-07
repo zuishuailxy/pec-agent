@@ -14,8 +14,8 @@ function ok(name, cond, detail) {
   if (cond) { pass++; console.log('PASS', name) }
   else { fail++; console.log('FAIL', name, detail ?? '') }
 }
-async function run(name, tool, args) {
-  try { return await tool.execute(args, {}) }
+async function run(name, tool, args, exec = {}) {
+  try { return await tool.execute(args, exec) }
   catch (e) { return { __error: e } }
 }
 // 平台会校验工具返回值是 lossless JSON（undefined/BigInt 会整体失败），这里做回归扫描。
@@ -166,6 +166,44 @@ for (const [name, args, expectCode, expectMsg] of [
   ok(name + ' → ' + expectCode, bad?.__error?.code === expectCode && expectMsg.test(bad?.__error?.message ?? ''), JSON.stringify(bad?.__error?.message))
 }
 
+// ---------- 记忆工具（T3）：白名单 / 会话+用户两层 / 冲突留痕 / 撤销 / 租户隔离 ----------
+const mem = tools
+const execT3 = { agent: { session: { id: 'session-t3' } } }
+const { unlinkSync } = await import('node:fs')
+const MEM_T3 = '/tmp/pec-memory-t3.json'
+try { unlinkSync(MEM_T3) } catch {}
+process.env.PEC_MEMORY_PATH = MEM_T3
+
+const memS1 = await run('mem-session-write', mem.memoryRemember, { scope: 'session', fields: { lastOrderId: 'PO-20261013-0042', lastSupplierId: 'SUP-1042', lastExceptionType: 'DELAY' } }, execT3)
+ok('memory 会话写入', memS1?.data?.fields?.lastOrderId === 'PO-20261013-0042' && memS1?.data?.ttlDays === 7, JSON.stringify(memS1?.data))
+const memS2 = await run('mem-session-correction', mem.memoryRemember, { scope: 'session', fields: { note: '用户确认按采购主管流程' }, source: 'user_correction' }, execT3)
+ok('memory 会话更正来源如实记录', memS2?.data?.source === 'user_correction' && memS2?.data?.fields?.note === '用户确认按采购主管流程', JSON.stringify(memS2?.data?.source))
+const memBadField = await run('mem-bad-field', mem.memoryRemember, { scope: 'session', fields: { foo: 1 } }, execT3)
+ok('memory 白名单外字段拒绝', memBadField?.__error?.code === 'INVALID_ARGUMENT' && /白名单/.test(memBadField?.__error?.message ?? ''), JSON.stringify(memBadField?.__error?.message))
+
+const memUser1 = await run('mem-user-write', mem.memoryRemember, { scope: 'user', fields: { commonSuppliers: ['SUP-1042'], preferAction: { reschedule: 2 } } }, execT3)
+ok('memory 用户写入', Array.isArray(memUser1?.data?.fields?.commonSuppliers) && memUser1?.data?.ttlDays === 90, JSON.stringify(memUser1?.data?.fields))
+const memUser2 = await run('mem-user-correct', mem.memoryRemember, { scope: 'user', fields: { commonSuppliers: ['SUP-1050'] }, source: 'user_correction' }, execT3)
+const corrected = memUser2?.data?.fields?.commonSuppliers ?? []
+ok('memory 用户更正合并并留痕', corrected.includes('SUP-1042') && corrected.includes('SUP-1050') && (memUser2?.data?.history ?? []).length >= 1, JSON.stringify(memUser2?.data?.history))
+
+const memR1 = await run('mem-recall', mem.memoryRecall, { scope: 'both', taskHint: 'PO-20261013-0042 SUP-1042' }, execT3)
+ok('memory 召回会话+用户', memR1?.data?.session?.fields?.lastOrderId === 'PO-20261013-0042' && !!memR1?.data?.user, JSON.stringify(memR1?.data?.session))
+const injectedText = JSON.stringify(memR1?.data?.injected ?? [])
+ok('memory 注入 3-5 条且含关键字段', (memR1?.data?.injected?.length ?? 0) >= 3 && (memR1?.data?.injected?.length ?? 0) <= 5 && injectedText.includes('lastOrderId'), injectedText.slice(0, 240))
+ok('memory 更正历史在 recall 里可见', (memR1?.data?.history ?? []).some((h) => h.field === 'commonSuppliers'), JSON.stringify(memR1?.data?.history))
+const memR2 = await run('mem-recall-other-session', mem.memoryRecall, { scope: 'session' }, { agent: { session: { id: 'session-other' } } })
+ok('memory 会话隔离（别的会话读不到）', memR2?.data?.session === null, JSON.stringify(memR2?.data?.session))
+
+const memF0 = await run('mem-forget-no-confirm', mem.memoryForget, { scope: 'session', confirm: false }, execT3)
+ok('memory 撤销需 confirm=true', memF0?.__error?.code === 'INVALID_ARGUMENT' && /confirm/.test(memF0?.__error?.message ?? ''), JSON.stringify(memF0?.__error?.message))
+const memF1 = await run('mem-forget-session', mem.memoryForget, { scope: 'session', confirm: true }, execT3)
+ok('memory 撤销会话记忆', memF1?.data?.deleted === true, JSON.stringify(memF1?.data))
+const memR3 = await run('mem-recall-after-forget', mem.memoryRecall, { scope: 'session' }, execT3)
+ok('memory 撤销后不再命中', memR3?.data?.session === null)
+const memF2 = await run('mem-forget-user', mem.memoryForget, { scope: 'user', confirm: true }, execT3)
+ok('memory 撤销用户记忆', memF2?.data?.deleted === true, JSON.stringify(memF2?.data))
+
 // 平台 lossless JSON 回归：所有工具返回 value 与其 render 输出都不得含 undefined
 for (const [name, value] of [
   ['contract_search', clause07?.data],
@@ -176,6 +214,8 @@ for (const [name, value] of [
   ['supplier_profile', supplier?.data],
   ['ticket_similar', t1?.data],
   ['advice_card', card1?.data],
+  ['memory_recall', memR1?.data],
+  ['memory_remember', memS1?.data],
 ]) {
   ok('lossless JSON: ' + name, findUndefined(value) === null, String(findUndefined(value)))
 }
@@ -191,7 +231,9 @@ for (const [name, tool, value] of [
 const plugin = await import('../plugins/pec-tools/lib/index.js')
 const surface = await import('../plugins/pec-tools/lib/policy/tool-surface.js')
 ok('advice_card 已注册到入口', plugin.inject?.includes?.('tools'), JSON.stringify(plugin.inject))
-ok('advice_card 在工具面 allow 列表', surface.PEC_TOOLS.includes('advice_card'), JSON.stringify(surface.PEC_TOOLS))
+for (const name of ['advice_card', 'memory_recall', 'memory_remember', 'memory_forget']) {
+  ok(name + ' 在工具面 allow 列表', surface.PEC_TOOLS.includes(name), JSON.stringify(surface.PEC_TOOLS))
+}
 
 // 跨租户：U-08 是 T-002 用户；只应看到 T-002 工单，查 T-001 供应商必须 POLICY_DENIED
 
@@ -208,6 +250,8 @@ try { auditText = readFileSync('/tmp/pec-audit-test.jsonl', 'utf8') } catch {}
 ok('ticket 跨租户拒绝留痕', auditText.includes('cross-tenant-supplier'), auditText.slice(-200))
 const adviceCross = await run('advice-cross-tenant', tools.adviceCard, { action: 'reschedule', orderId: 'PO-20261013-0042' })
 ok('advice 跨租户 → POLICY_DENIED', adviceCross?.__error?.code === 'POLICY_DENIED', JSON.stringify(adviceCross?.__error?.message))
+const memCross = await run('mem-cross-tenant', tools.memoryRecall, { scope: 'both' }, { agent: { session: { id: 'session-t3' } } })
+ok('memory 跨租户旧记忆不生效', memCross?.data?.session === null && memCross?.data?.injectedCount === 0, JSON.stringify(memCross?.data))
 delete process.env.PEC_USER_ID
 identityModule.resetIdentity()
 
