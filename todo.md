@@ -62,13 +62,13 @@
 - **完成定义**：**12/12 通过**；`node eval/collect.mjs --gate` → 准确率 100% / 引用可溯 100%（8/8）/ 记忆命中 100% / 技能复用 100% / 越权拦截 100%，提效 pending（T6）；门禁自测：改坏 g-12 skillHit → 退出码 1，恢复 → 0。
 - **验证命令**：`cd pec-agent && bash eval/run.sh && node eval/collect.mjs --gate`
 
-## T6 专项集 + A/B 8 条（D1）
+## T6 专项集 + A/B 8 条（D1，已完成）
 
-- [ ] 专项集：记忆 5 对、越权矩阵、技能命中 2 条
-- [ ] A/B：8 条 T-001 延迟工单；A 组移走 `.dsh/skills`、B 组保留；统计 `tool_call` 步数/token/耗时/结论一致率
-- [ ] `eval/ab_report.md`：对照表 + 逐条结论 + 口径说明
-- **完成定义**：B 组相对 A 组步数或 token 降幅 ≥30% 且一致率 ≥A；门禁含 A/B 判定。
-- **验证命令**：`bash eval/ab.sh`（或 `eval/run.sh --ab`）→ `node eval/collect.mjs --gate --ab`
+- [x] 专项集：记忆 5 对（5/5）、越权矩阵 9 条（9/9）、技能命中 2 条（2/2）——`eval/special.mjs` + `eval/special_summary.json`，已合并进六指标分母（记忆 6/6、技能 3/3、越权 10/10）
+- [x] A/B：8 条 T-001 延迟工单；A 组移走 `.dsh/skills`、B 组保留；步数 12.25→3.25（↓73.5%）、token 43,311→24,363（↓43.7%）、参考得分 0.875→0.9、逐位一致率 92.5%
+- [x] `eval/ab_report.md`（对照表 + 逐单结论 + 口径/异常说明）+ `eval/ab_summary.json`
+- **完成定义**：**门禁 PASS**（效率 73.5% ≥30%，B 参考得分 ≥ A）；`node eval/collect.mjs --gate` 六指标全绿、退出码 0。
+- **验证命令**：`node eval/special.mjs && node eval/ab.mjs && node eval/collect.mjs --gate`
 
 ## T7 traces 四类（D1）
 

@@ -1,0 +1,455 @@
+{
+  "generatedAt": "2026-11-07T10:44:48.954Z",
+  "durationMs": 372077,
+  "orders": [
+    "PO-20260906-0114",
+    "PO-20261006-0121",
+    "PO-20261008-0108",
+    "PO-20261015-0118",
+    "PO-20260916-0170",
+    "PO-20261009-0153",
+    "PO-20260916-0109",
+    "PO-20261006-0116"
+  ],
+  "prompt": "处理订单 <orderId> 的交期延迟：查订单与合同条款，给出处置建议（动作、金额、条款、审批路径、改期日），并引用数据来源。",
+  "groupSize": 8,
+  "avgStepsA": 12.25,
+  "avgStepsB": 3.25,
+  "stepsReductionPct": 73.5,
+  "avgTokensA": 43311,
+  "avgTokensB": 24363,
+  "tokensReductionPct": 43.7,
+  "referenceScoreA": 0.875,
+  "referenceScoreB": 0.9,
+  "agreementPct": 92.5,
+  "consistencyOk": true,
+  "efficiencyOk": true,
+  "gatePass": true,
+  "tokensMissingRuns": 0,
+  "details": [
+    {
+      "orderId": "PO-20260906-0114",
+      "reference": {
+        "orderId": "PO-20260906-0114",
+        "amount": "5239.50",
+        "action": "reschedule",
+        "clause": "CL-45",
+        "approvalPath": "自动（无需人工审批）",
+        "newDate": "2026-10-18",
+        "promisedAt": "2026-09-16",
+        "deliveredAt": "2026-10-04"
+      },
+      "A": {
+        "steps": 8,
+        "tokens": 32212,
+        "ms": 28645,
+        "score": 1,
+        "toolSequence": [
+          "order_lookup",
+          "memory_recall",
+          "contract_search",
+          "contract_search",
+          "supplier_profile",
+          "pricing_quote",
+          "ticket_similar",
+          "advice_card"
+        ],
+        "skillLoaded": []
+      },
+      "B": {
+        "steps": 3,
+        "tokens": 22545,
+        "ms": 11064,
+        "score": 1,
+        "toolSequence": [
+          "skill",
+          "order_lookup",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "identical": true,
+      "disagreedFields": []
+    },
+    {
+      "orderId": "PO-20261006-0121",
+      "reference": {
+        "orderId": "PO-20261006-0121",
+        "amount": "6732.00",
+        "action": "reschedule",
+        "clause": "CL-45",
+        "approvalPath": "自动（无需人工审批）",
+        "newDate": "2026-11-12",
+        "promisedAt": "2026-10-27",
+        "deliveredAt": "2026-10-29"
+      },
+      "A": {
+        "steps": 11,
+        "tokens": 33721,
+        "ms": 30742,
+        "score": 0.8,
+        "toolSequence": [
+          "order_lookup",
+          "memory_recall",
+          "contract_search",
+          "contract_search",
+          "supplier_profile",
+          "ticket_similar",
+          "pricing_quote",
+          "contract_search",
+          "contract_search",
+          "freight_calc",
+          "advice_card"
+        ],
+        "skillLoaded": []
+      },
+      "B": {
+        "steps": 4,
+        "tokens": 23636,
+        "ms": 12560,
+        "score": 1,
+        "toolSequence": [
+          "skill",
+          "memory_recall",
+          "order_lookup",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "identical": false,
+      "disagreedFields": [
+        "approvalPath"
+      ]
+    },
+    {
+      "orderId": "PO-20261008-0108",
+      "reference": {
+        "orderId": "PO-20261008-0108",
+        "amount": "8400.00",
+        "action": "reschedule",
+        "clause": null,
+        "approvalPath": "自动（无需人工审批）",
+        "newDate": "2026-11-11",
+        "promisedAt": "2026-10-15",
+        "deliveredAt": "2026-10-28"
+      },
+      "A": {
+        "steps": 17,
+        "tokens": 68936,
+        "ms": 40900,
+        "score": 0.8,
+        "toolSequence": [
+          "order_lookup",
+          "memory_recall",
+          "supplier_profile",
+          "contract_search",
+          "ticket_similar",
+          "contract_search",
+          "contract_search",
+          "pricing_quote",
+          "contract_search",
+          "contract_search",
+          "freight_calc",
+          "contract_search",
+          "contract_search",
+          "pec_data_catalog",
+          "order_lookup",
+          "order_lookup",
+          "advice_card"
+        ],
+        "skillLoaded": []
+      },
+      "B": {
+        "steps": 4,
+        "tokens": 23865,
+        "ms": 11639,
+        "score": 0.8,
+        "toolSequence": [
+          "skill",
+          "order_lookup",
+          "memory_recall",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "identical": true,
+      "disagreedFields": []
+    },
+    {
+      "orderId": "PO-20261015-0118",
+      "reference": {
+        "orderId": "PO-20261015-0118",
+        "amount": "8400.00",
+        "action": "reschedule",
+        "clause": null,
+        "approvalPath": "自动（无需人工审批）",
+        "newDate": "2026-12-07",
+        "promisedAt": "2026-11-05",
+        "deliveredAt": "2026-11-23"
+      },
+      "A": {
+        "steps": 13,
+        "tokens": 52842,
+        "ms": 52721,
+        "score": 0.8,
+        "toolSequence": [
+          "order_lookup",
+          "memory_recall",
+          "contract_search",
+          "contract_search",
+          "supplier_profile",
+          "pricing_quote",
+          "ticket_similar",
+          "skill",
+          "contract_search",
+          "contract_search",
+          "contract_search",
+          "order_lookup",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "B": {
+        "steps": 3,
+        "tokens": 22777,
+        "ms": 11078,
+        "score": 1,
+        "toolSequence": [
+          "skill",
+          "order_lookup",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "identical": false,
+      "disagreedFields": [
+        "approvalPath"
+      ]
+    },
+    {
+      "orderId": "PO-20260916-0170",
+      "reference": {
+        "orderId": "PO-20260916-0170",
+        "amount": "16800.00",
+        "action": "reschedule",
+        "clause": null,
+        "approvalPath": "自动（无需人工审批）",
+        "newDate": "2026-10-19",
+        "promisedAt": "2026-09-26",
+        "deliveredAt": "2026-10-05"
+      },
+      "A": {
+        "steps": 15,
+        "tokens": 47814,
+        "ms": 29518,
+        "score": 1,
+        "toolSequence": [
+          "order_lookup",
+          "memory_recall",
+          "contract_search",
+          "pricing_quote",
+          "supplier_profile",
+          "ticket_similar",
+          "contract_search",
+          "contract_search",
+          "contract_search",
+          "pec_data_catalog",
+          "contract_search",
+          "contract_search",
+          "ticket_similar",
+          "ticket_similar",
+          "advice_card"
+        ],
+        "skillLoaded": []
+      },
+      "B": {
+        "steps": 3,
+        "tokens": 22763,
+        "ms": 12113,
+        "score": 0.8,
+        "toolSequence": [
+          "skill",
+          "order_lookup",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "identical": false,
+      "disagreedFields": [
+        "approvalPath"
+      ]
+    },
+    {
+      "orderId": "PO-20261009-0153",
+      "reference": {
+        "orderId": "PO-20261009-0153",
+        "amount": "20790.00",
+        "action": "reschedule",
+        "clause": null,
+        "approvalPath": "自动（无需人工审批）",
+        "newDate": "2026-11-12",
+        "promisedAt": "2026-10-16",
+        "deliveredAt": "2026-10-29"
+      },
+      "A": {
+        "steps": 12,
+        "tokens": 37424,
+        "ms": 33495,
+        "score": 0.8,
+        "toolSequence": [
+          "order_lookup",
+          "memory_recall",
+          "contract_search",
+          "contract_search",
+          "supplier_profile",
+          "ticket_similar",
+          "pricing_quote",
+          "freight_calc",
+          "contract_search",
+          "contract_search",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": []
+      },
+      "B": {
+        "steps": 3,
+        "tokens": 28242,
+        "ms": 14818,
+        "score": 0.8,
+        "toolSequence": [
+          "skill",
+          "order_lookup",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "identical": true,
+      "disagreedFields": []
+    },
+    {
+      "orderId": "PO-20260916-0109",
+      "reference": {
+        "orderId": "PO-20260916-0109",
+        "amount": "27000.00",
+        "action": "reschedule",
+        "clause": null,
+        "approvalPath": "自动（无需人工审批）",
+        "newDate": "2026-11-03",
+        "promisedAt": "2026-10-07",
+        "deliveredAt": "2026-10-20"
+      },
+      "A": {
+        "steps": 11,
+        "tokens": 34887,
+        "ms": 31870,
+        "score": 0.8,
+        "toolSequence": [
+          "order_lookup",
+          "memory_recall",
+          "contract_search",
+          "contract_search",
+          "supplier_profile",
+          "ticket_similar",
+          "pricing_quote",
+          "contract_search",
+          "contract_search",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": []
+      },
+      "B": {
+        "steps": 3,
+        "tokens": 23284,
+        "ms": 13142,
+        "score": 0.8,
+        "toolSequence": [
+          "skill",
+          "order_lookup",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "identical": true,
+      "disagreedFields": []
+    },
+    {
+      "orderId": "PO-20261006-0116",
+      "reference": {
+        "orderId": "PO-20261006-0116",
+        "amount": "48000.00",
+        "action": "reschedule",
+        "clause": null,
+        "approvalPath": "自动（无需人工审批）",
+        "newDate": "2026-11-08",
+        "promisedAt": "2026-10-20",
+        "deliveredAt": "2026-10-25"
+      },
+      "A": {
+        "steps": 11,
+        "tokens": 38651,
+        "ms": 23611,
+        "score": 1,
+        "toolSequence": [
+          "order_lookup",
+          "memory_recall",
+          "contract_search",
+          "supplier_profile",
+          "ticket_similar",
+          "contract_search",
+          "contract_search",
+          "contract_search",
+          "pricing_quote",
+          "freight_calc",
+          "advice_card"
+        ],
+        "skillLoaded": []
+      },
+      "B": {
+        "steps": 3,
+        "tokens": 27791,
+        "ms": 14127,
+        "score": 1,
+        "toolSequence": [
+          "skill",
+          "order_lookup",
+          "contract_search",
+          "advice_card"
+        ],
+        "skillLoaded": [
+          "delay-small-standard"
+        ]
+      },
+      "identical": true,
+      "disagreedFields": []
+    }
+  ],
+  "aSkillAttempts": [
+    "PO-20261015-0118"
+  ]
+}
