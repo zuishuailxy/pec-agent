@@ -77,12 +77,12 @@
 - [x] `dev/demo-memory.sh` 兼容“凭记忆 0 工具作答”的合法路径
 - **完成定义**：四类共 16 个证据文件（事件流/审计/说明），关键断言（57,600/CL-07/采购主管/POLICY_DENIED/memory.injected/1000）逐个 grep 校验通过；可直接被答辩引用。
 
-## T8 文档骨架 + d1 tag（D1 收工）
+## T8 文档骨架 + d1 tag（D1，已完成）
 
 - [x] `design.md`（架构/取舍/口径/风险/ADR/验收映射）——已按用户要求提前落盘（commit `9794faa`）
-- [ ] `README.md`（三段演示命令 + 工具名映射）、`ARCHITECTURE.md`
-- [ ] `CHANGELOG.md` 补全 T1–T7 行为变化；`git tag d1`；工作区干净
-- **完成定义**：`git status` 干净、`git tag` 含 `d1`；README 三段命令可复制执行。
+- [x] `README.md`（三段演示命令 + 工具名映射 + 插件加载机制 + 打包改名提醒）、`ARCHITECTURE.md`、`plugins/pec-tools/README.md` 更新
+- [x] `CHANGELOG.md` 补全 v0.1–v0.9（T1–T8 + 修复 + 口径决策）；`git tag d1`（annotated）；工作区干净
+- **完成定义**：`git status` 干净、`git tag` 含 `d1`；README 三段命令可复制执行；build + 113 passed + 门禁 exit 0。
 
 ## T9 CR#1 落地 + 全回归（D2）
 

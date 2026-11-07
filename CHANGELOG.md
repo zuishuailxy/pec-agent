@@ -2,7 +2,27 @@
 
 > 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见文末（自拟，非官方）。
 
-### v0.8（D1）· 2026-11-07
+### v0.9（D1）· 2026-11-07 · D1 收工
+
+### T8 文档骨架 + d1 tag
+
+- **新增 `README.md`（交付主说明）**：环境/前置、三段演示命令（单轮问答 / 多轮记忆 / 技能命中）与预期输出、目录结构、**工具名映射表**（题面点号→实现下划线）、复跑评测与门禁命令、插件加载机制（答辩用）、安全与口径要点、打包改名提醒、文档索引。
+- **新增 `ARCHITECTURE.md`**：分层视图、模块边界表、一次处置数据流、工具面注册链、鉴权/审计边界、记忆/技能/评测子系统结构、环境变量表、扩展点与已知边界。
+- **更新 `plugins/pec-tools/README.md`**：从预装脚手架说明改为实际 12 工具清单、入口/加载方式、工具契约与新增工具 checklist。
+- **D1 收工自检**：`./dev/build.sh` + `node dev/test-tools.mjs` **113 passed**；`node eval/collect.mjs --gate` 六指标全绿（accuracy 100% / citation 100% / memory 100% / skill 100% / efficiency 73.5% / authz 100%）；`.dsh/skills` 3 份、`traces` 16 个证据文件、`memory/store.json` 复位为空 seed；工作区干净后打 **annotated tag `d1`**。
+
+### D1 小结
+
+| 项 | 结果 |
+|---|---|
+| 工具 | 12 个（6 题面工具 + advice_card + 3 记忆工具 + skill_write），全部 `defineTool` + guard + render + provenance |
+| 记忆 | 两层记忆 + 每 step 注入 3–5 条；专项 5/5 不重复提问，`memory.injected` 审计可查 |
+| 技能 | 3 份 SKILL.md（手写 delay-small-standard / Agent 沉淀 stock-replenish / 样例 freight-anomaly-standard）；命中 3/3 |
+| 评测 | golden set 12/12；专项记忆 5/5 · 越权 9/9 · 技能 2/2；A/B 步数 ↓73.5%、token ↓43.7%、结论一致率不低于 A；门禁 exit 0 |
+| 证据 | `eval/report.md`、`eval/ab_report.md`、`eval/special_summary.json`、`traces/` 四类事件流 |
+| 待 D2 | CR#1 落地 + 全回归（T9）、失败归因 1 例（T10）、评测/A-B 定稿（T11）、defense（T12）、干净环境复现 + 打包 + `d2`（T13） |
+
+## v0.8（D1）· 2026-11-07
 
 ### T7 traces 四类补齐
 

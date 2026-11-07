@@ -1,6 +1,6 @@
 # PEC Agent 评测报告（golden set v1）
 
-- 生成时间：2026-11-07T11:04:15.176Z
+- 生成时间：2026-11-07T11:37:21.369Z
 - 用例：12 条（正常 5 / 边界 3 / 对抗 2 / 记忆 1 / 技能 1）
 - 运行方式：`bash eval/run.sh` → `node eval/collect.mjs --gate`（headless `--json` 事件流）
 - 通过：12/12
