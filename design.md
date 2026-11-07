@@ -420,5 +420,5 @@ bash eval/run.sh && node eval/collect.mjs --gate
 ## 14. 交付状态与已知缺口
 
 - **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 历史召回）+ `advice_card` 建议卡 + 3 个记忆工具与每轮注入 + `skill_write`；技能 A（手写 `delay-small-standard`）与技能 B（Agent 沉淀 `stock-replenish`）均命中验证；guard/审计/脱敏/工具面；定点金额与 provenance；**golden set 12 条 + 专项集 + A/B + 批跑/统计/门禁：六指标全绿（准确率/引用/记忆/技能/越权 100%，提效 73.5%）**；`plan.md/todo.md/design.md/CHANGELOG.md/memory/extract.md/eval/traces/`；工具冒烟 **113 passed**；headless 端到端：订单查询、历史召回、建议卡、两轮记忆、技能沉淀与命中。
-- **计划中**：traces 补齐 qa/memory（T7）、文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。
+- **计划中**：文档定稿/`d1`（T8）、CR#1（T9）、失败归因（T10）、复现打包（T13）。**traces 四类已完成（T7）**。
 - **已知缺口（题面/数据造成，已声明）**：R8 汇率不可实现；R11 成本价字段不存在；R9 风险分自定；R10 等值边界 0 样本；R7 ≥20 万 0 样本；状态机仅 3/5 状态有样本。

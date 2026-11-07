@@ -70,11 +70,12 @@
 - **完成定义**：**门禁 PASS**（效率 73.5% ≥30%，B 参考得分 ≥ A）；`node eval/collect.mjs --gate` 六指标全绿、退出码 0。
 - **验证命令**：`node eval/special.mjs && node eval/ab.mjs && node eval/collect.mjs --gate`
 
-## T7 traces 四类（D1）
+## T7 traces 四类（D1，已完成）
 
-- [ ] `traces/qa/`（golden set 代表性 run）、`traces/memory/`（两轮）、`traces/skill-write/`（沉淀过程）、`traces/skill-hit/`（命中执行）
-- [ ] `traces/README.md`：命令 + 验证点 + 关键事件行号
-- **完成定义**：四类各 ≥1 个 `--json` 事件流文件 + 说明，可直接被答辩引用。
+- [x] `traces/qa/`（0042 建议卡 / CL-47 注入抵抗 / 跨租户拒绝，各含事件流 + 审计）、`traces/memory/`（两轮 + 注入审计）、`traces/skill-write/`（生成过程）、`traces/skill-hit/`（A/B 命中）
+- [x] `traces/README.md`：四类命令、文件清单、关键证据、复跑前置、边界说明
+- [x] `dev/demo-memory.sh` 兼容“凭记忆 0 工具作答”的合法路径
+- **完成定义**：四类共 16 个证据文件（事件流/审计/说明），关键断言（57,600/CL-07/采购主管/POLICY_DENIED/memory.injected/1000）逐个 grep 校验通过；可直接被答辩引用。
 
 ## T8 文档骨架 + d1 tag（D1 收工）
 

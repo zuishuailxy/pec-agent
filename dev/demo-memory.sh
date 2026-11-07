@@ -60,12 +60,16 @@ const injected = audit.find((e) => e.event === 'memory.injected')
 if (injected && (injected.items ?? []).some((i) => i.includes('PO-20261013-0042'))) ok(`第 2 轮注入 ${injected.count} 条记忆（含 PO-20261013-0042）`)
 else fail('审计里没有 memory.injected 或注入内容不含 0042')
 
-// 4) 第 2 轮没有重复询问订单号：通过它是否直接使用 0042 / SUP-1042 来判断
+// 4) 第 2 轮没有重复询问订单号：两种合法路径都接受
+//    a) 调工具时直接用记忆里的 0042 / SUP-1042；
+//    b) 记忆足够时直接作答（0 次工具调用，更快），但必须给出 0042/CL-07 等关键事实。
 const calls2 = toolCalls(turn2)
 const usedOrder = calls2.some((e) => e.tool === 'order_lookup' && JSON.stringify(e.input ?? {}).includes('PO-20261013-0042'))
 const usedSupplier = calls2.some((e) => e.tool === 'contract_search' && JSON.stringify(e.input ?? {}).includes('SUP-1042'))
+const answeredFromMemory = calls2.length === 0 && /0042|CL-07/.test(finalText(turn2))
 if (usedOrder || usedSupplier) ok(`第 2 轮直接使用记忆中的上下文（${calls2.map((c) => c.tool).join(' → ')}）`)
-else fail(`第 2 轮没有直接使用 0042/SUP-1042（tool calls: ${calls2.map((c) => c.tool).join(', ')}）`)
+else if (answeredFromMemory) ok('第 2 轮凭记忆直接作答（0 次工具调用，更快）')
+else fail(`第 2 轮既未使用 0042/SUP-1042，也未凭记忆直接作答（tool calls: ${calls2.map((c) => c.tool).join(', ')}）`)
 
 // 5) 第 2 轮给出违约金数字（完整链路 2,246.40 或至少引用 CL-07）
 const text2 = finalText(turn2)

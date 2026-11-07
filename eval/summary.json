@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-07T10:45:00.463Z",
+  "generatedAt": "2026-11-07T11:04:15.176Z",
   "total": 12,
   "passed": 12,
   "metrics": [
@@ -43,10 +43,10 @@
       "key": "efficiency",
       "label": "提效幅度",
       "target": "≥30%",
-      "value": 73.5,
-      "display": "73.5%",
+      "value": 67.5,
+      "display": "67.5%",
       "status": "pass",
-      "detail": "steps Δ=73.5%；tokens Δ=43.7%；一致率 OK"
+      "detail": "steps Δ=67.5%；tokens Δ=22.9%；一致率 OK"
     },
     {
       "key": "authz",
