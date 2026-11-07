@@ -40,6 +40,7 @@
 - [x] `plugins/pec-tools/src/memory/inject.ts`：`ctx.systemPrompt.section` 每 step 注入 3–5 条（`interpolate:false`、同步、空记忆返回 `''`、异常降级不抛）；`systemPrompt` 用 `ctx.get()` 可选挂载
 - [x] 会话记忆补写（`ticket_similar` / `advice_card`）；`memory/extract.md` 写白名单与抽取/冲突/注入规则
 - [x] `index.ts` / `business.ts` / `build.sh` / tool-surface 同步；`dev/test-tools.mjs` 补记忆读写/隔离/撤销/白名单/更正留痕测试
+- [x] 演示脚本 `dev/demo-memory.sh`（一键两轮、自动断言、失败非 0）；报告里的省略号截断命令已改为完整可复制命令
 - **完成定义**：**98 passed / 0 failed**；headless 两轮：审计 `memory.injected count:3`（含 `会话记忆.lastOrderId="PO-20261013-0042"`），第 2 轮不再问订单号，直接查 `CL-07` 并算出 2,246.40（`runs/t3-memory-*.jsonl`）；`PEC_USER_ID=U-08` 下旧记忆不生效（断言通过）。
 - **验证命令**：`./dev/build.sh && node dev/test-tools.mjs`；`./dev/run-headless.sh --session-id <id> --json "处理 PO-20261013-0042 延迟"` → 同一 session 第二轮 `"那违约金多少"`。
 

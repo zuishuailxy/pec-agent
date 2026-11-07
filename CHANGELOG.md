@@ -2,6 +2,18 @@
 
 > 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见文末（自拟，非官方）。
 
+### v0.4.1（D1）· 2026-11-07 文档/演示修复（非实现 bug）
+
+- **现象**：用户复测记忆时，第 1 轮命令用了报告里被省略号截断的 prompt（“记录一下：…调用 memory_remember 写入会话记忆…”），第 2 轮报“当前会话和用户记忆都是空的”。
+- **诊断**（解压 Session 事件流 + 审计核对）：
+  - 第 1 轮 `tool/call` 只有 1 次 `memory_recall`（读），**没有 `memory_remember`**；审计只有 `memory.recalled`，没有 `memory.session.updated`；
+  - 原因：prompt 里没有订单/供应商事实，模型读空记忆后直接结束 turn，没有写入任何字段 → 第 2 轮自然无记忆可注入；
+  - 注入/存储实现本身正常（同一流程完整 prompt 的两轮 demo 通过，见下）。
+- **修复**：
+  - 新增 `dev/demo-memory.sh`：一键两轮演示（隔离 `PEC_MEMORY_PATH/PEC_AUDIT_PATH`、自动从 `session` 事件取 sessionId、自动断言“注入命中/第 2 轮不再询问订单号/给出 2,246.40”），失败退出码非 0；
+  - `memory/extract.md` 改为**完整可复制命令**，并明确“命令不能带省略号”。
+- **证据**：`./dev/demo-memory.sh` → 全 PASS（第 2 轮注入 4 条记忆含 `PO-20261013-0042`，直接 `contract_search(SUP-1042)` → `pricing_quote` → 2,246.40），事件流 `runs/demo-memory-turn1.jsonl` / `turn2.jsonl` / `audit.jsonl`。
+
 ## v0.4（D1）· 2026-11-07
 
 ### T3 记忆工具与每轮注入

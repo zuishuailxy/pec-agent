@@ -65,9 +65,20 @@
 cd pec-agent
 ./dev/build.sh && node dev/test-tools.mjs      # 98 passed（含 14 条记忆断言）
 
-# 两轮记忆演示（第 1 轮写记忆；第 2 轮不应重复询问订单号）
-PEC_AUDIT_PATH=runs/t3-memory-audit.jsonl ./dev/run-headless.sh --json "记录一下：当前处理订单 PO-20261013-0042（供应商 SUP-1042，异常类型交期延迟）。请调用 memory_remember 写入会话记忆……"
-PEC_AUDIT_PATH=runs/t3-memory-audit.jsonl ./dev/run-headless.sh --session-id <第 1 轮返回的 sessionId> --json "那违约金多少？"
+# 一键两轮演示（推荐）：自动隔离记忆/审计、自动取 sessionId、自动断言，失败退出码非 0
+./dev/demo-memory.sh
+```
+
+手动复现时命令必须**完整、不能带省略号**（省略号会让第 1 轮没有订单信息，模型只调 `memory_recall` 读空记忆，不会写入）：
+
+```bash
+# 第 1 轮：order_lookup 成功后自动写会话记忆（不依赖模型是否调用 memory_remember）
+PEC_MEMORY_PATH=runs/demo2-store.json PEC_AUDIT_PATH=runs/demo2-audit.jsonl \
+  ./dev/run-headless.sh --json "处理订单 PO-20261013-0042 的交期延迟：先用 order_lookup 查询该订单的承诺交期、实际交期、状态与延迟天数，然后简要说明"
+
+# 从第 1 轮输出里取 sessionId（JSON 第一行 type=session 的 sessionId），第 2 轮必须传同一个 --session-id
+PEC_MEMORY_PATH=runs/demo2-store.json PEC_AUDIT_PATH=runs/demo2-audit.jsonl \
+  ./dev/run-headless.sh --session-id <第 1 轮 sessionId> --json "那违约金多少？"
 ```
 
 实际证据（`runs/t3-memory-turn1.jsonl` / `turn2.jsonl` / `t3-memory-audit.jsonl`）：
