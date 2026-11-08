@@ -88,6 +88,7 @@
 
 - [x] 自拟变更：`order_lookup` 加物流商派生字段（`derived_rule_CR1-v1`：物流单价 ≥90 顺丰 / 82–89.99 德邦 / <82 安能）+ `advice_card` 金额 ≥10 万需财务会签（10–20 万 → 采购主管+财务会签）；同时影响**工具/技能/记忆三层**（明细见 `CHANGELOG.md` v1.0）
 - [x] 既有 golden set 全回归 + 新增 `g-13`（物流商）/ `g-14`（财务会签）2 条用例；`CHANGELOG.md` v1.0 标注“自拟 CR，不是官方 CR#1”
+- [x] 用户复跑暴露的 2 处评测稳定性问题已修复：g-09 `noCompliantCard` 假阳性（改为按工具产出判定 + 反向篡改自测）、g-01 prompt 与技能护栏二义（明确必须出卡，断言未放宽）——见 `CHANGELOG.md` v1.0.1
 - **完成定义**：CR 后既有 12 条全绿 + 新用例通过 → **golden 14/14 PASS**，`node eval/collect.mjs --gate` 六指标全绿（退出码 0）；工具冒烟 **133 passed / 0 failed**。
 - **验证命令**：
   ```bash
