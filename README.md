@@ -22,24 +22,50 @@ node dev/test-tools.mjs        # 工具级冒烟（不需要模型）：136 pass
 
 > `dev/run-headless.sh` 强制 `DSH_HOME=<repo>/.dsh-home`（避免开发机用户级 profile/技能污染）；`.dsh-home/` 已 gitignore，干净环境先跑 `./dev/setup-profile.sh` 再跑 headless。
 
-## 2. 三段演示命令（题面要求）
+## 2. 三段演示命令（题面 §8.2 要求：单轮问答 / 多轮记忆 / 技能命中）
+
+> 在 `pec-agent/` 目录下执行（先跑过 §1 的 `setup-profile.sh` + `build.sh`）。三条命令复制即可运行；`headless` 输出为 NDJSON 事件流，`final` 事件是给用户看的答案。
+
+### ① 单轮问答：订单延迟 → 条款 → 建议卡（含来源）
 
 ```bash
-# ① 单轮问答：订单延迟 + 条款 + 建议卡（工具序列与来源可核对）
 ./dev/run-headless.sh --json "处理订单 PO-20261013-0042 的交期延迟：先查订单事实，再检索该供应商的违约金条款，最后必须调用 advice_card 工具给出建议卡与审批路径（金额 ≥5 万时卡片强制需人工确认，但仍要出卡）"
+```
 
-# ② 多轮记忆：第 2 轮不再重复询问订单号（一键脚本，自动断言；也可按 memory/extract.md 手动两轮）
+预期：`tool_call` 依次出现 `skill → order_lookup → contract_search → advice_card`；`final` 含延迟 **13 天**、金额 **57,600.00**、条款 **CL-07**、审批 **采购主管**、改期日 **2026-11-16**，并带 `[来源: orders#PO-20261013-0042]`。
+
+### ② 多轮记忆：第 2 轮不再重复询问订单号
+
+**方式 A（一键脚本，含自动断言）**：
+
+```bash
 ./dev/demo-memory.sh
+```
 
-# ③ 技能命中：不点名技能，由 catalog 自主命中 delay-small-standard（3 步出卡）
+**方式 B（手动两条命令，演示 session 复用）**：
+
+```bash
+# 第 1 轮：查订单事实（会话记忆自动写入 lastOrderId 等）
+./dev/run-headless.sh --json "处理订单 PO-20261013-0042 的交期延迟，先查订单事实" | tee /tmp/pec-turn1.jsonl
+
+# 取出本会话的 sessionId（事件流里的 session 事件）
+SID=$(node -e 'const fs=require("fs");const line=fs.readFileSync("/tmp/pec-turn1.jsonl","utf8").split("\n").find(x=>x.includes("\"type\":\"session\""));console.log(JSON.parse(line).sessionId)')
+
+# 第 2 轮：同一 session 只问“那违约金多少？”
+./dev/run-headless.sh --session-id "$SID" --json "那违约金多少？"
+```
+
+预期：第 2 轮**不再问订单号**，直接引用会话记忆作答（`CL-07`、违约金 **2,246.40**），审计出现 `memory.injected`（`lastOrderId="PO-20261013-0042"`）。
+
+### ③ 技能命中：不点名技能，由 catalog 自主命中 `delay-small-standard`
+
+```bash
 ./dev/run-headless.sh --json "PO-20260906-0114 延迟，按标准流程处理，最后给出建议卡"
 ```
 
-预期（详见 [`traces/`](traces/README.md) 的真实事件流快照）：
+预期：`tool_call skill {"name":"delay-small-standard"}` → `order_lookup → contract_search → advice_card`（业务工具 **3 步**），条款 **CL-45（1‰）**、金额 **5,239.50**、审批“自动”。
 
-- 输入①：`tool_call` 依次出现 `order_lookup → contract_search → advice_card`；final 含延迟 **13 天**、金额 **57,600.00**、条款 **CL-07**、审批 **采购主管**、改期日 **2026-11-16**，并带 `[来源: orders#…] [来源: contracts#CL-07]`。
-- 输入②：第 1 轮 `order_lookup` 自动写会话记忆；第 2 轮只问“那违约金多少？”时**不再问订单号**，审计出现 `memory.injected`（`lastOrderId="PO-20261013-0042"`）。
-- 输入③：`tool_call skill {"name":"delay-small-standard"}` → `order_lookup → contract_search → advice_card`（业务工具 **3 步**），条款 **CL-45（1‰）**、金额 **5,239.50**、审批“自动”。
+> 三段命令的最终实测见 `eval/report.md`（golden 15/15、六指标全绿）与 `traces/`（真实事件流快照，可直接用 `grep '"type":"final"'` 看答案）。
 
 ## 3. 目录结构
 
