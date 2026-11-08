@@ -122,7 +122,7 @@ ctx.tools.register(defineTool({
 
 ### 3.3 guard 与工具面收紧
 
-- **guard**（`policy/guard.ts`）：`ctx.tools.guard((exec) => string | undefined)`，同步单调；拦截模型伪造 `tenantId` 参数（与身份不符 → `POLICY_DENIED` + 审计）；身份只从 `exec.agent?.session?.id` + `resolveIdentity()` 取，绝不信任 `args.role/userId`。
+- **guard**（`policy/guard.ts`）：`ctx.tools.guard((exec) => string | undefined)`，同步单调；拦截模型伪造 `tenantId` 参数（与身份不符 → `POLICY_DENIED` + 审计）；身份只从 `exec.agent?.session?.id` + `resolveIdentity()` 取，绝不信任 `args.role/userId`。判定逻辑抽成纯函数 `tenantForgeryDecision(args, identity)` 并有确定性单测（T11：`dev/test-tools.mjs` 断言伪造/同租户/未传三态），不再只依赖 E2E 里模型“是否真的传了伪造参数”；E2E 专项 a-07 采用双合规路径判定（模型照传 → 必须被拒+审计；模型按契约拒绝自填 → 无泄露即通过，2026-11-08 复跑出现后修正）。
 - **工具面收紧**（`policy/tool-surface.ts`）：监听 `agent/created`，在 `agent.ctx.tools.restrict({ allow })` 里只放 PEC 业务工具 + `skill`；bash/read/write/grep 对 PEC agent 不可见 → 满足 R14“不得绕过工具直接读表”，同时规避本机 bash 沙箱不可用问题。**新增工具必须同步 allow 列表**，否则 `restrict` 抛错导致 agent 创建失败。
 - **资源级租户校验**在工具体内做（先取行 → 判断 tenant → 跨租户 `POLICY_DENIED` 并审计），因为 guard 只有参数层，不知道资源归属。
 - **能力边界软声明（T10）**：`policy/tool-boundary.ts` 通过 `systemPrompt.section({name:'pec:tool-boundary', order:10040})` 每次固定声明工具白名单（动态取 `PEC_TOOLS`）、“不存在 bash/read/grep/sqlite 等工具”、“检索无命中如实回答（最多 1–2 次同义词复检）”、“不得把 sqlite3/grep 命令交给用户执行”。硬拦截（restrict）保安全、软声明纠正行为；对应评测断言 `toolsNotAny` + `g-15`，失败归因见 `eval/failure-case.md`。
@@ -309,7 +309,8 @@ score = 100                                     if blacklisted
 **v1 结果（12/12）**：准确率 100%、引用可溯 100%（8/8 用例含全部来源）、记忆命中 100%、技能复用 100%、越权拦截 100%；提效 pending（T6）。门禁自测：改坏 g-12 skillHit → 退出码 1。
 **v2 结果（T6 后，六指标全绿）**：准确率 100%、引用可溯 100%、记忆命中 100%（6/6）、技能复用 100%（3/3）、提效 73.5%、越权拦截 100%（10/10）；`node eval/collect.mjs --gate` 退出码 0。
 **CR#1 全回归（T9）**：golden set 扩为 14 条（+g-13 物流商 / +g-14 财务会签），既有 12 条全部保持通过；工具冒烟 **133 passed**。
-**T10 回归（2026-11-08）**：golden set 扩为 15 条（+g-15 工具边界），15/15；六指标全绿、门禁 exit 0；失败归因与前后对照见 `eval/failure-case.md` / `traces/failure/`。
+**T10 回归（2026-11-08）**：golden set 扩为 15 条（+g-15 工具边界），15/15；失败归因与前后对照见 `eval/failure-case.md` / `traces/failure/`。
+**v3 定稿（T11，2026-11-08 全量重跑）**：golden **15/15**、专项记忆 5/5 / 越权 9/9 / 技能 2/2、A/B 步数 **8.25→3.13（↓62.1%）** / token **32,387→27,179（↓16.1%）** / 参考得分 **0.85→0.875** / 逐位一致率 **97.5%**；六指标全部达标（准确率/引用/记忆/技能/越权 100%、提效 62.1%），`node eval/collect.mjs --gate` 退出码 0。
 
 ### 8.2 专项集（D1 已实现）
 
@@ -326,6 +327,7 @@ score = 100                                     if blacklisted
 - 主指标：`tool_call` 事件数（native executor）；辅助：token（`step_end.usage` 求和，缺省容错）、墙钟、结论五元组（action/金额/条款号/approvalPath/newDate）逐位一致率；
 - 门禁：`Δsteps ≥30%` 或 `Δtokens ≥30%`，且 B 一致率 ≥ A；`eval/ab_report.md` 出对照表。
 - **D1 实测（8 条 T-001 延迟工单）**：业务工具步数 **12.25 → 3.25（↓73.5%）**；token **43,311 → 24,363（↓43.7%）**；参考结论得分 **0.875 → 0.9**（B≥A）；逐位一致率 92.5%；门禁 PASS。A 组一次 `skill`（unknown）调用已如实记录，不计业务步数、不影响公平性。
+- **T11 定稿重跑（2026-11-08，CR#1/T10 后同口径）**：业务工具步数 **8.25 → 3.13（↓62.1%）**；token **32,387 → 27,179（↓16.1%）**；参考结论得分 **0.85 → 0.875**（B≥A）；逐位一致率 **97.5%**；A 组无 `skill` 异常、token 无缺失；门禁 PASS。与 D1 两次独立重跑均 ≥30% 降幅，结论方向一致（绝对步数因模型/技能文本变化略有波动，已在报告中如实记录）。
 
 ---
 
@@ -433,5 +435,6 @@ bash eval/run.sh && node eval/collect.mjs --gate
 - **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 历史召回）+ `advice_card` 建议卡 + 3 个记忆工具与每轮注入 + `skill_write`；技能 A（手写 `delay-small-standard`）与技能 B（Agent 沉淀 `stock-replenish`）均命中验证；guard/审计/脱敏/工具面；定点金额与 provenance；**golden set 12 条 + 专项集 + A/B + 批跑/统计/门禁：六指标全绿（准确率/引用/记忆/技能/越权 100%，提效 73.5%）**；`plan.md/todo.md/design.md/CHANGELOG.md/memory/extract.md/eval/traces/`；工具冒烟 **113 passed**；headless 端到端：订单查询、历史召回、建议卡、两轮记忆、技能沉淀与命中。
 - **已完成（D2 · T9）**：自拟 CR#1 落地（工具/技能/记忆三层 + 假设与回归记录）；既有 golden 12 条全回归 + 新增 g-13/g-14；工具冒烟 133 passed；CHANGELOG v1.0 记录影响面/假设/回归。
 - **已完成（D2 · T10）**：失败归因 1 例（模型越界尝试 bash/引导用户绕过工具面）→ 修复（`policy/tool-boundary.ts` 静态能力边界 + `toolsNotAny` 断言 + `g-15`）；`eval/failure-case.md` + `traces/failure/` 前后对照；golden 15/15、门禁 exit 0。
-- **计划中（D2）**：评测/A-B 定稿（T11）、defense（T12）、干净环境复现 + 打包 + `d2`（T13）。**traces 四类（T7）与文档/`d1`（T8）已完成**。
+- **已完成（D2 · T11）**：评测报告 + A/B 定稿——全量重跑 golden 15/15 + 专项集 + A/B（↓62.1%、一致率 97.5%）；`eval/report.md` 新增 v1/v2/v3 版本对照与 A/B 摘要；六指标全部达标、门禁 exit 0；同批修复 a-07 双合规路径判定与 guard 纯函数单测（冒烟 136 passed）。
+- **计划中（D2）**：defense（T12）、干净环境复现 + 打包 + `d2`（T13）。**traces 五类（T7 四类 + T10 failure）与文档/`d1`（T8）、CR#1（T9）、失败归因（T10）已完成**。
 - **已知缺口（题面/数据造成，已声明）**：R8 汇率不可实现；R11 成本价字段不存在；R9 风险分自定；R10 等值边界 0 样本；R7 ≥20 万 0 样本；状态机仅 3/5 状态有样本。

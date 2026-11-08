@@ -109,10 +109,17 @@
   bash eval/run.sh --only g-15
   ```
 
-## T11 评测报告 + A/B 定稿（D2）
+## T11 评测报告 + A/B 定稿（D2，已完成 2026-11-08）
 
-- [ ] 重跑全量评测（golden + 专项 + A/B），更新 `eval/report.md` / `eval/ab_report.md`，门禁全绿
-- **完成定义**：六指标全部达标，报告含 v1/v2 与 A/B 对照。
+- [x] 全量重跑：golden **15/15**、专项集（记忆 5/5、越权 9/9、技能 2/2）、A/B（步数 8.25→3.13 **↓62.1%**、token ↓16.1%、参考得分 0.85→0.875、逐位一致率 97.5%）
+- [x] `eval/report.md` 升级为最终版：六指标总表 + **v1/v2/v3 版本对照** + 15 条逐条断言 + 专项集 + **A/B 摘要** + 备注（含 T10 失败归因指针）；`eval/ab_report.md`、`eval/special_summary.json`、`eval/summary.json` 同步重生成
+- [x] 同批复跑修复 2 处评测健壮性问题：a-07 参数伪造改为"双合规路径"判定 + guard 纯函数单测（冒烟 133→136）；A/B 参考函数同步 CR#1 财务会签档
+- **完成定义**：六指标全部达标 ✅（准确率 100% / 引用可溯 100% / 记忆 100% / 技能 100% / 提效 62.1% / 越权拦截 100%），报告含 v1/v2 与 A/B 对照 ✅；`node eval/collect.mjs --gate` 退出码 **0**。
+- **验证命令**：
+  ```bash
+  cd pec-agent && node eval/special.mjs && node eval/ab.mjs
+  bash eval/run.sh && node eval/collect.mjs --gate
+  ```
 
 ## T12 defense + 文档定稿（D2）
 

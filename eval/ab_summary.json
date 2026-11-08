@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-07T11:02:37.167Z",
-  "durationMs": 603155,
+  "generatedAt": "2026-11-08T05:14:31.458Z",
+  "durationMs": 245151,
   "orders": [
     "PO-20260906-0114",
     "PO-20261006-0121",
@@ -13,19 +13,19 @@
   ],
   "prompt": "处理订单 <orderId> 的交期延迟：查订单与合同条款，给出处置建议（动作、金额、条款、审批路径、改期日），并引用数据来源。",
   "groupSize": 8,
-  "avgStepsA": 9.63,
+  "avgStepsA": 8.25,
   "avgStepsB": 3.13,
-  "stepsReductionPct": 67.5,
-  "avgTokensA": 30685,
-  "avgTokensB": 23651,
-  "tokensReductionPct": 22.9,
-  "referenceScoreA": 0.7,
-  "referenceScoreB": 0.9,
-  "agreementPct": 75,
+  "stepsReductionPct": 62.1,
+  "avgTokensA": 32387,
+  "avgTokensB": 27179,
+  "tokensReductionPct": 16.1,
+  "referenceScoreA": 0.85,
+  "referenceScoreB": 0.875,
+  "agreementPct": 97.5,
   "consistencyOk": true,
   "efficiencyOk": true,
   "gatePass": true,
-  "tokensMissingRuns": 1,
+  "tokensMissingRuns": 0,
   "aSkillAttempts": [],
   "details": [
     {
@@ -41,28 +41,26 @@
         "deliveredAt": "2026-10-04"
       },
       "A": {
-        "steps": 9,
-        "tokens": 37280,
-        "ms": 38578,
+        "steps": 7,
+        "tokens": 26076,
+        "ms": 19204,
         "score": 0.8,
         "toolSequence": [
           "order_lookup",
-          "memory_recall",
-          "contract_search",
-          "contract_search",
-          "pricing_quote",
           "supplier_profile",
+          "pricing_quote",
+          "contract_search",
+          "contract_search",
           "ticket_similar",
-          "advice_card",
           "advice_card"
         ],
         "skillLoaded": []
       },
       "B": {
         "steps": 3,
-        "tokens": 22711,
-        "ms": 10570,
-        "score": 1,
+        "tokens": 25182,
+        "ms": 8677,
+        "score": 0.8,
         "toolSequence": [
           "skill",
           "order_lookup",
@@ -73,10 +71,8 @@
           "delay-small-standard"
         ]
       },
-      "identical": false,
-      "disagreedFields": [
-        "approvalPath"
-      ]
+      "identical": true,
+      "disagreedFields": []
     },
     {
       "orderId": "PO-20261006-0121",
@@ -91,21 +87,31 @@
         "deliveredAt": "2026-10-29"
       },
       "A": {
-        "steps": 0,
-        "tokens": 0,
-        "ms": 305036,
-        "score": 0,
-        "toolSequence": [],
+        "steps": 8,
+        "tokens": 34929,
+        "ms": 19945,
+        "score": 0.8,
+        "toolSequence": [
+          "order_lookup",
+          "pec_data_catalog",
+          "supplier_profile",
+          "pricing_quote",
+          "contract_search",
+          "ticket_similar",
+          "contract_search",
+          "advice_card"
+        ],
         "skillLoaded": []
       },
       "B": {
-        "steps": 3,
-        "tokens": 22094,
-        "ms": 9281,
+        "steps": 4,
+        "tokens": 27067,
+        "ms": 10807,
         "score": 0.8,
         "toolSequence": [
           "skill",
           "order_lookup",
+          "memory_recall",
           "contract_search",
           "advice_card"
         ],
@@ -113,13 +119,8 @@
           "delay-small-standard"
         ]
       },
-      "identical": false,
-      "disagreedFields": [
-        "action",
-        "amount",
-        "clause",
-        "newDate"
-      ]
+      "identical": true,
+      "disagreedFields": []
     },
     {
       "orderId": "PO-20261008-0108",
@@ -134,23 +135,17 @@
         "deliveredAt": "2026-10-28"
       },
       "A": {
-        "steps": 14,
-        "tokens": 42603,
-        "ms": 27396,
+        "steps": 8,
+        "tokens": 33400,
+        "ms": 17737,
         "score": 0.8,
         "toolSequence": [
           "order_lookup",
           "memory_recall",
           "supplier_profile",
           "contract_search",
-          "contract_search",
-          "contract_search",
           "pricing_quote",
           "ticket_similar",
-          "contract_search",
-          "pec_data_catalog",
-          "freight_calc",
-          "contract_search",
           "contract_search",
           "advice_card"
         ],
@@ -158,9 +153,9 @@
       },
       "B": {
         "steps": 3,
-        "tokens": 22731,
-        "ms": 11317,
-        "score": 1,
+        "tokens": 25016,
+        "ms": 8876,
+        "score": 0.8,
         "toolSequence": [
           "skill",
           "order_lookup",
@@ -171,10 +166,8 @@
           "delay-small-standard"
         ]
       },
-      "identical": false,
-      "disagreedFields": [
-        "approvalPath"
-      ]
+      "identical": true,
+      "disagreedFields": []
     },
     {
       "orderId": "PO-20261015-0118",
@@ -189,30 +182,27 @@
         "deliveredAt": "2026-11-23"
       },
       "A": {
-        "steps": 12,
-        "tokens": 40461,
-        "ms": 26270,
-        "score": 0.8,
+        "steps": 9,
+        "tokens": 34863,
+        "ms": 23670,
+        "score": 1,
         "toolSequence": [
           "order_lookup",
           "memory_recall",
-          "contract_search",
           "supplier_profile",
+          "contract_search",
           "pricing_quote",
           "ticket_similar",
           "contract_search",
           "contract_search",
-          "contract_search",
-          "contract_search",
-          "freight_calc",
           "advice_card"
         ],
         "skillLoaded": []
       },
       "B": {
         "steps": 3,
-        "tokens": 23212,
-        "ms": 11789,
+        "tokens": 25423,
+        "ms": 9911,
         "score": 1,
         "toolSequence": [
           "skill",
@@ -224,10 +214,8 @@
           "delay-small-standard"
         ]
       },
-      "identical": false,
-      "disagreedFields": [
-        "approvalPath"
-      ]
+      "identical": true,
+      "disagreedFields": []
     },
     {
       "orderId": "PO-20260916-0170",
@@ -242,35 +230,27 @@
         "deliveredAt": "2026-10-05"
       },
       "A": {
-        "steps": 16,
-        "tokens": 38017,
-        "ms": 31038,
+        "steps": 8,
+        "tokens": 28476,
+        "ms": 17617,
         "score": 0.8,
         "toolSequence": [
           "order_lookup",
           "memory_recall",
+          "contract_search",
+          "contract_search",
           "supplier_profile",
-          "contract_search",
-          "contract_search",
-          "contract_search",
-          "ticket_similar",
           "pricing_quote",
-          "freight_calc",
-          "contract_search",
-          "contract_search",
-          "contract_search",
-          "contract_search",
-          "contract_search",
-          "pec_data_catalog",
+          "ticket_similar",
           "advice_card"
         ],
         "skillLoaded": []
       },
       "B": {
         "steps": 3,
-        "tokens": 23164,
-        "ms": 12951,
-        "score": 1,
+        "tokens": 31491,
+        "ms": 10146,
+        "score": 0.8,
         "toolSequence": [
           "skill",
           "order_lookup",
@@ -281,10 +261,8 @@
           "delay-small-standard"
         ]
       },
-      "identical": false,
-      "disagreedFields": [
-        "approvalPath"
-      ]
+      "identical": true,
+      "disagreedFields": []
     },
     {
       "orderId": "PO-20261009-0153",
@@ -299,28 +277,26 @@
         "deliveredAt": "2026-10-29"
       },
       "A": {
-        "steps": 10,
-        "tokens": 35989,
-        "ms": 33313,
-        "score": 0.6,
+        "steps": 8,
+        "tokens": 28776,
+        "ms": 17202,
+        "score": 0.8,
         "toolSequence": [
           "order_lookup",
           "memory_recall",
-          "contract_search",
           "supplier_profile",
+          "contract_search",
+          "contract_search",
           "ticket_similar",
           "pricing_quote",
-          "contract_search",
-          "contract_search",
-          "contract_search",
           "advice_card"
         ],
         "skillLoaded": []
       },
       "B": {
         "steps": 3,
-        "tokens": 22943,
-        "ms": 10360,
+        "tokens": 25574,
+        "ms": 9765,
         "score": 0.8,
         "toolSequence": [
           "skill",
@@ -332,10 +308,8 @@
           "delay-small-standard"
         ]
       },
-      "identical": false,
-      "disagreedFields": [
-        "clause"
-      ]
+      "identical": true,
+      "disagreedFields": []
     },
     {
       "orderId": "PO-20260916-0109",
@@ -350,27 +324,28 @@
         "deliveredAt": "2026-10-20"
       },
       "A": {
-        "steps": 8,
-        "tokens": 25333,
-        "ms": 24056,
-        "score": 0.8,
+        "steps": 9,
+        "tokens": 35211,
+        "ms": 21167,
+        "score": 1,
         "toolSequence": [
           "order_lookup",
           "memory_recall",
-          "contract_search",
-          "contract_search",
           "supplier_profile",
           "pricing_quote",
+          "contract_search",
           "ticket_similar",
+          "contract_search",
+          "contract_search",
           "advice_card"
         ],
         "skillLoaded": []
       },
       "B": {
         "steps": 3,
-        "tokens": 28397,
-        "ms": 13978,
-        "score": 0.8,
+        "tokens": 31563,
+        "ms": 11221,
+        "score": 1,
         "toolSequence": [
           "skill",
           "order_lookup",
@@ -397,31 +372,31 @@
         "deliveredAt": "2026-10-25"
       },
       "A": {
-        "steps": 8,
-        "tokens": 25799,
-        "ms": 24416,
-        "score": 1,
+        "steps": 9,
+        "tokens": 37362,
+        "ms": 27437,
+        "score": 0.8,
         "toolSequence": [
           "order_lookup",
           "memory_recall",
-          "contract_search",
-          "contract_search",
           "supplier_profile",
           "pricing_quote",
+          "contract_search",
           "ticket_similar",
+          "contract_search",
+          "contract_search",
           "advice_card"
         ],
         "skillLoaded": []
       },
       "B": {
-        "steps": 4,
-        "tokens": 23955,
-        "ms": 12728,
-        "score": 0.8,
+        "steps": 3,
+        "tokens": 26116,
+        "ms": 11730,
+        "score": 1,
         "toolSequence": [
           "skill",
           "order_lookup",
-          "memory_recall",
           "contract_search",
           "advice_card"
         ],

@@ -17,7 +17,7 @@ traces/
 
 ```bash
 cd pec-agent
-./dev/build.sh && node dev/test-tools.mjs     # 133 passed
+./dev/build.sh && node dev/test-tools.mjs     # 136 passed
 ls .dsh/skills/                               # delay-small-standard / stock-replenish / freight-anomaly-standard
 ```
 

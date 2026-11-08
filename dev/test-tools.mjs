@@ -308,6 +308,13 @@ for (const name of ['advice_card', 'memory_recall', 'memory_remember', 'memory_f
   ok(name + ' 在工具面 allow 列表', surface.PEC_TOOLS.includes(name), JSON.stringify(surface.PEC_TOOLS))
 }
 
+// guard 参数伪造（T11 下确定性单测，不再依赖模型是否真的传伪造参数）
+const { tenantForgeryDecision } = await import('../plugins/pec-tools/lib/policy/guard.js')
+const guardIdentity = { userId: 'U-07', tenantId: 'T-001', role: 'buyer' }
+ok('guard 伪造 tenantId → POLICY_DENIED', String(tenantForgeryDecision({ tenantId: 'T-002' }, guardIdentity)).startsWith('POLICY_DENIED'), JSON.stringify(tenantForgeryDecision({ tenantId: 'T-002' }, guardIdentity)))
+ok('guard 同租户 tenantId → 放行', tenantForgeryDecision({ tenantId: 'T-001' }, guardIdentity) === undefined)
+ok('guard 未传 tenantId → 放行', tenantForgeryDecision({}, guardIdentity) === undefined)
+
 // 跨租户：U-08 是 T-002 用户；只应看到 T-002 工单，查 T-001 供应商必须 POLICY_DENIED
 
 const identityModule = await import('../plugins/pec-tools/lib/policy/identity.js')

@@ -2,6 +2,41 @@
 
 > 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见 v1.0（自拟，非官方）。
 
+## v1.2（D2）· 2026-11-08 · T11 评测报告 + A/B 定稿
+
+> 任务书 §3.3 D2「任务四 A/B 效率对照 + 打磨」。本版为 D2 评测定稿：全量重跑 golden（15 条）+ 专项集（记忆 5 对 / 越权 9 条 / 技能 2 条）+ A/B（8 条），报告新增 **v1/v2/v3 版本对照** 与 **A/B 摘要**；六指标全部达标，门禁 exit 0。
+
+### 全量重跑结果（2026-11-08，CR#1 + T10 修复后）
+
+| 指标 | 目标 | 实测 | 状态 |
+|---|---|---|---|
+| 回答准确率 | ≥90% | **100%（15/15）** | ✅ PASS |
+| 引用可溯率 | 100% | **100%（11/11）** | ✅ PASS |
+| 记忆命中率 | ≥80% | **100%（6/6）** | ✅ PASS |
+| 技能复用率 | ≥60% | **100%（3/3）** | ✅ PASS |
+| 提效幅度 | ≥30% | **62.1%** | ✅ PASS |
+| 越权拦截率 | 100% | **100%（10/10）** | ✅ PASS |
+
+- **A/B（8 条 T-001 同类延迟工单）**：业务工具步数 **8.25 → 3.13（↓62.1%）**；token **32,387 → 27,179（↓16.1%）**；参考结论得分 **0.85 → 0.875**（B≥A）；逐位一致率 **97.5%**；`node eval/ab.mjs` exit 0、门禁 PASS；token 无缺失、A 组无 `skill` 异常。
+- **专项集**：记忆 **5/5**、越权矩阵 **9/9**、技能命中 **2/2**。
+- **报告**：`eval/report.md` 最终版（15 条 + 专项 + A/B + 「1.1 版本对照 v1→v2→v3」+「5. A/B 摘要」）；`eval/summary.json`、`eval/ab_report.md`、`eval/special_summary.json` 同步重生成。
+- **与 D1 对比**：v2（T6）提效 73.5%、v3（T11）62.1%——两次独立重跑均 ≥30% 且 B 参考得分 ≥ A；绝对步数因模型/技能文本变化有波动，报告如实保留两版数字与口径说明。
+
+### 同批复跑暴露的 2 处评测健壮性问题（已修复）
+
+1. **专项 a-07（参数伪造 → guard）**：模型现在按工具契约**拒绝自填 `tenantId`**（合规行为），不再触发 guard deny → 旧断言判失败（安全结果实际通过）。修复：
+   - `policy/guard.ts` 把参数伪造判定抽成纯函数 `tenantForgeryDecision(args, identity)`，`installGuard` 复用；`dev/test-tools.mjs` 新增确定性单测（伪造 / 同租户 / 未传三态）；
+   - `eval/special.mjs` 的 a-07 改**双合规路径**判定：模型照传伪造参数 → 必须 `POLICY_DENIED`+审计；模型按契约拒绝传 → 无越权泄露即通过（`checks.forgedTenant=false` 可在报告核对）。
+   - 工具冒烟 133 → **136 passed / 0 failed**。
+2. **A/B 参考实现未同步 CR#1**：`eval/ab.mjs` 的 `referenceFor()` R7 档位补「10–20 万 → 采购主管+财务会签」（本组 8 条金额均 <5 万，不影响结果口径，但保证参考实现与产品规则一致）。
+
+### 影响面
+
+- 代码：仅 `policy/guard.ts` 纯函数重构（**行为不变**，返回码/审计不变）+ 测试；工具输出、数据、profile、依赖均未改。
+- 评测：`eval/{collect,special,ab}.mjs` 与报告生成增强；`eval/report.md`/`eval/ab_report.md`/`eval/special_summary.json`/`eval/summary.json` 重生成。
+- 文档：README 指标/证据数字、design §8.1/§8.3/§3.3/§14、traces/README 测试数同步。
+- 最终评测证据链：`eval/report.md`（六指标 + 版本对照）、`eval/ab_report.md`（A/B 明细与逐单仲裁）、`eval/special_summary.json`、`eval/failure-case.md`（T10 失败归因）、`traces/` 五类证据。
+
 ## v1.1（D2）· 2026-11-08 · T10 失败归因 + 修复（工具能力边界）
 
 > 任务书 §3.3 D2「失败归因 1 例 + 修复 修复前后对照」。完整分析见 [`eval/failure-case.md`](eval/failure-case.md)，前后事件流见 [`traces/failure/`](traces/failure/)。

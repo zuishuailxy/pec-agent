@@ -40,7 +40,16 @@ function referenceFor(orderId) {
   const supplier = db.prepare('select blacklisted from suppliers where id = ?').get(order.supplier_id)
   const clause = db.prepare("select clause_no from contracts where supplier_id = ? and type = 'penalty' order by clause_no limit 1").get(order.supplier_id)
   const cents = Math.round(Number(order.amount) * 100)
-  const approvalPath = supplier.blacklisted ? '人工复核（黑名单供应商）' : cents >= 20_000_000 ? '总监+财务' : cents >= 5_000_000 ? '采购主管' : '自动（无需人工审批）'
+  // R7 档位与产品实现同步（含 CR#1：≥10 万需财务会签；本组 8 条金额均 <5 万，档位不受影响）
+  const approvalPath = supplier.blacklisted
+    ? '人工复核（黑名单供应商）'
+    : cents >= 20_000_000
+      ? '总监+财务'
+      : cents >= 10_000_000
+        ? '采购主管+财务会签'
+        : cents >= 5_000_000
+          ? '采购主管'
+          : '自动（无需人工审批）'
   return {
     orderId,
     amount: Number(order.amount).toFixed(2),

@@ -1,7 +1,7 @@
 # PEC 采购异常处置 Agent（Procurement Exception Copilot）
 
 > 基于 DSH 0.2.1-rc.2 的采购异常处置 Agent 交付物：**12 个业务/记忆/技能工具 + 3 份 SKILL.md + 两层记忆 + 15 条 golden set + 专项集 + A/B 提效 + 门禁**。
-> 六项指标全部达标：回答准确率 100% · 引用可溯 100% · 记忆命中 100% · 技能复用 100% · **提效 73.5%** · 越权拦截 100%（证据见 [`eval/report.md`](eval/report.md)、[`eval/ab_report.md`](eval/ab_report.md)）。
+> 六项指标全部达标：回答准确率 100% · 引用可溯 100% · 记忆命中 100% · 技能复用 100% · **提效 62.1%** · 越权拦截 100%（最终重跑证据见 [`eval/report.md`](eval/report.md)、[`eval/ab_report.md`](eval/ab_report.md)）。
 
 ## 1. 环境与前置
 
@@ -16,7 +16,7 @@
 ```bash
 cd pec-agent
 ./dev/build.sh                 # esbuild: plugins/pec-tools/src → lib（profile 加载 lib/index.js）
-node dev/test-tools.mjs        # 工具级冒烟（不需要模型）：133 passed
+node dev/test-tools.mjs        # 工具级冒烟（不需要模型）：136 passed
 ```
 
 ## 2. 三段演示命令（题面要求）
@@ -89,7 +89,7 @@ node eval/collect.mjs --gate      # 合并报告 + 门禁（任一已评测指�
 ```
 
 - 门禁目标：准确率 ≥90% / 引用可溯 100% / 记忆命中 ≥80% / 技能复用 ≥60% / 提效 ≥30% / 越权拦截 100%。
-- 当前证据（一次运行）：`eval/report.md`（12/12；六指标全绿）、`eval/ab_report.md`（步数 12.25→3.25，↓73.5%；参考得分 0.875→0.9；逐位一致率 92.5%）、`eval/special_summary.json`（5/5、9/9、2/2）。
+- 当前证据（T11 最终重跑）：`eval/report.md`（15/15；六指标全绿 + v1/v2/v3 版本对照）、`eval/ab_report.md`（步数 8.25→3.13，↓62.1%；参考得分 0.85→0.875；逐位一致率 97.5%）、`eval/special_summary.json`（记忆 5/5、越权 9/9、技能 2/2）。
 - 提效主指标 = **业务工具调用步数**（native executor 下数 `tool_call`，剔除 `skill` 加载本身）；token 作辅助（技能正文会抬高 token）。
 
 > 注意：评测结果是模型真实输出，**不同运行数值/步数会有波动**；本仓提交的是某次完整运行快照，命令可随时复跑。

@@ -123,12 +123,12 @@ PEC_USER_ID=U-07 PEC_MEMORY_PATH=/tmp/t10/memory.json PEC_AUDIT_PATH=/tmp/t10/au
 
 ```bash
 cd pec-agent
-./dev/build.sh && node dev/test-tools.mjs        # 133 passed / 0 failed
+./dev/build.sh && node dev/test-tools.mjs        # 136 passed / 0 failed
 bash eval/run.sh && node eval/collect.mjs --gate  # golden 15/15，六指标全绿，exit 0
 ```
 
 - golden set 14 → **15 条**：新增 g-15（adversarial），其余 14 条不回归；
-- 六指标：准确率 100%（15/15）/ 引用可溯 100% / 记忆 100% / 技能 100% / 提效 67.5% / 越权拦截 100%；
+- 六指标：准确率 100%（15/15）/ 引用可溯 100% / 记忆 100% / 技能 100% / 提效 ≥30%（T11 定稿重跑 62.1%） / 越权拦截 100%；
 - 报告：`eval/report.md`（golden set v3）；断言自测：修复前 trace → `FAIL toolsNotAny`，修复后 → PASS。
 
 ## 8. 残留风险与后续
