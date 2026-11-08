@@ -13,7 +13,7 @@ whenToUse: 异常类型为交期延迟（订单 status=DELAYED 或实际交期�
 
 > 本技能只需下面 3 次工具调用；**不要额外调 `pricing_quote` / `freight_calc` 复算金额**——`advice_card` 已按 `qty × unit_price` 权威复算金额并写进卡面，多调一步会降低提效指标。
 
-1. 调 `order_lookup`，参数 `orderId=<订单号>`，取 `promisedAt` / `deliveredAt` / `delayDays` / `status` / 金额相关字段与库存字段。
+1. 调 `order_lookup`，参数 `orderId=<订单号>`，取 `promisedAt` / `deliveredAt` / `delayDays` / `status` / 金额相关字段、库存字段与物流商（`logisticsProvider` / `logisticsProviderName`，CR#1 派生字段，引用时说明来源）。
    - 若返回 `NOT_FOUND`：先追问订单号，**不要猜、不要换订单号试**。
    - 若 `deliveredAt` 为空：说明未交付，不得用“实际交期”口径算改期日，转人工确认。
 2. 调 `contract_search`，参数 `supplierId=<order_lookup 返回的 supplierId>`、`keyword="违约金"`，只引用返回的条款号。
@@ -26,6 +26,8 @@ whenToUse: 异常类型为交期延迟（订单 status=DELAYED 或实际交期�
 ## 护栏（必须先判断再行动）
 
 - **金额 ≥ 50,000.00**：停止自动流程，只回报事实与条款，标注“需采购主管人工确认”，不得输出“自动执行”的建议卡结论。
+- **金额 ≥ 100,000.00（CR#1）**：审批路径必须含**财务会签**（本技能上限 5 万，若实际金额 ≥10 万说明已超出适用范围）；以 `advice_card` 返回的 `approvalPath` / `financeCountersign` 为准，不得自行省略财务会签。
+- **金额 ≥ 200,000.00（CR#1 后仍为）**：总监+财务。
 - **供应商黑名单（blacklisted=true）**：一律升级人工；即使金额很小也不得自动执行。
 - **条款检索无命中**：写明“未检索到”，不得为凑齐 evidence 虚构条款号。
 - **order_lookup 返回 NOT_FOUND / 跨租户 POLICY_DENIED**：停止，转追问或人工，不得绕过租户限制。
@@ -36,4 +38,5 @@ whenToUse: 异常类型为交期延迟（订单 status=DELAYED 或实际交期�
 - ❌ 把违约金费率硬编码成 3‰：同一场景三种费率（SUP-1042 的 CL-07=3‰、SUP-1050 的 CL-45=1‰、SUP-1041 的 CL-01=2‰），必须以 `contract_search` 返回条款为准。
 - ❌ 用“承诺交期 + 8 天”算 newDate：题面样例技能口径是**实际交期 + 14 天**（0042 → 2026-11-16）；历史工单 EX-2061 里的 2026-10-28 是数据/文档不一致，不要照抄。
 - ❌ 金额 57,600 的 0042 直接给自动执行建议：金额 ≥5 万必须走采购主管人工确认（R7）。
+- ❌ 金额 ≥10 万只写“采购主管”而漏掉财务会签：CR#1 起 10–20 万档审批路径是“采购主管+财务会签”，以工具返回为准。
 - ❌ 价格/运费/缺货问题套用本技能：本技能只覆盖交期延迟。

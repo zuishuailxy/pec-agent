@@ -15,9 +15,25 @@ const SELECT = `
   join suppliers s on s.id = o.supplier_id
   join skus k on k.id = o.sku_id
 `;
+const LOGISTICS_RULE = "derived_rule_CR1-v1";
+const LOGISTICS_THRESHOLDS = { express: 90, standard: 82 };
+function logisticsProviderFor(freightRate) {
+  if (!Number.isFinite(freightRate) || freightRate < 0) throw invalid(`\u975E\u6CD5\u7269\u6D41\u5355\u4EF7\uFF1A${freightRate}`);
+  if (freightRate >= LOGISTICS_THRESHOLDS.express) {
+    return { provider: "SF-EXPRESS", providerName: "\u987A\u4E30\u901F\u8FD0", rule: `${LOGISTICS_RULE}:freight_rate>=90` };
+  }
+  if (freightRate >= LOGISTICS_THRESHOLDS.standard) {
+    return { provider: "DEBANG", providerName: "\u5FB7\u90A6\u7269\u6D41", rule: `${LOGISTICS_RULE}:82<=freight_rate<90` };
+  }
+  return { provider: "ANE", providerName: "\u5B89\u80FD\u7269\u6D41", rule: `${LOGISTICS_RULE}:freight_rate<82` };
+}
 function mapOrder(row) {
   const delayDays = row.delivered_at ? dayDiff(row.promised_at, row.delivered_at) : null;
+  const logistics = logisticsProviderFor(row.freight_rate);
   return {
+    logisticsProvider: logistics.provider,
+    logisticsProviderName: logistics.providerName,
+    logisticsProviderSource: logistics.rule,
     orderId: row.id,
     supplierId: row.supplier_id,
     supplierName: row.supplier_name,
@@ -50,13 +66,14 @@ function renderOrder(order, refs) {
   return [
     `\u8BA2\u5355 ${order.orderId}\uFF1A\u72B6\u6001 ${order.status}\uFF1B\u4F9B\u5E94\u5546 ${order.supplierId} ${order.supplierName}\uFF08${order.riskLevel} \u7EA7\uFF0C\u9ED1\u540D\u5355${order.blacklisted ? "\u662F" : "\u5426"}\uFF0C\u8FD1 12 \u6708\u5EF6\u8FDF ${order.delayDays12m} \u5929\uFF09`,
     `  SKU ${order.skuId} ${order.skuName} \xD7 ${order.qty}\uFF0C\u5355\u4EF7 ${order.unitPrice}\uFF1B\u4E0B\u5355 ${order.orderedAt}\uFF0C\u627F\u8BFA\u4EA4\u671F ${order.promisedAt}\uFF0C\u5B9E\u9645\u4EA4\u671F ${order.deliveredAt ?? "\u672A\u4EA4\u4ED8"}`,
+    `  \u7269\u6D41\u5546 ${order.logisticsProviderName}\uFF08${order.logisticsProvider}\uFF1B\u6765\u6E90 ${order.logisticsProviderSource}\uFF0C\u6570\u636E\u8868\u65E0\u7269\u6D41\u5546\u5B57\u6BB5\uFF0C\u6309\u7269\u6D41\u5355\u4EF7 ${order.freightRate} \u6863\u4F4D\u786E\u5B9A\u6027\u6D3E\u751F\uFF09`,
     `  \u5EF6\u8FDF\u5929\u6570 ${order.delayDays ?? "N/A"}\uFF1B\u4F53\u79EF ${order.volume}\uFF1B\u7269\u6D41\u5355\u4EF7 ${order.freightRate}`,
     `  \u5E93\u5B58\uFF1A\u5F53\u524D ${stock.onHand} + \u5728\u9014 ${stock.inTransit}\uFF0C\u5B89\u5168\u5E93\u5B58 ${stock.safetyStock}\uFF0CMOQ ${stock.moq}${stock.belowSafety ? "\uFF08\u4F4E\u4E8E\u5B89\u5168\u5E93\u5B58\uFF09" : ""}`
   ];
 }
 const orderLookup = defineTool({
   name: "order_lookup",
-  description: "\u6309\u8BA2\u5355\u53F7\u3001SKU \u6216\u4F9B\u5E94\u5546\u67E5\u8BE2\u91C7\u8D2D\u8BA2\u5355\u7684\u5C65\u7EA6\u4FE1\u606F\uFF08\u627F\u8BFA/\u5B9E\u9645\u4EA4\u671F\u3001\u5EF6\u8FDF\u5929\u6570\u3001\u72B6\u6001\u3001\u5E93\u5B58\u4E0E\u5728\u9014\uFF09\u3002\u9002\u7528\uFF1A\u9700\u8981\u8BA2\u5355\u4E8B\u5B9E\u4E0E\u5E93\u5B58\u4E8B\u5B9E\u65F6\uFF1B\u4E0D\u9002\u7528\uFF1A\u7B97\u91D1\u989D/\u7A0E\u989D\uFF08\u7528 pricing.quote\uFF09\u3001\u7B97\u8FD0\u8D39\uFF08\u7528 freight.calc\uFF09\u3001\u67E5\u4F9B\u5E94\u5546\u753B\u50CF\uFF08\u7528 supplier.profile\uFF09\u3002",
+  description: "\u6309\u8BA2\u5355\u53F7\u3001SKU \u6216\u4F9B\u5E94\u5546\u67E5\u8BE2\u91C7\u8D2D\u8BA2\u5355\u7684\u5C65\u7EA6\u4FE1\u606F\uFF08\u627F\u8BFA/\u5B9E\u9645\u4EA4\u671F\u3001\u5EF6\u8FDF\u5929\u6570\u3001\u72B6\u6001\u3001\u5E93\u5B58\u4E0E\u5728\u9014\u3001\u7269\u6D41\u5546\uFF09\u3002\u7269\u6D41\u5546\u4E3A CR#1 \u6D3E\u751F\u5B57\u6BB5\uFF08\u6570\u636E\u8868\u65E0\u8BE5\u5B57\u6BB5\uFF0C\u6309\u7269\u6D41\u5355\u4EF7\u6863\u4F4D\u786E\u5B9A\u6027\u6D3E\u751F\uFF0C\u6807\u6CE8\u6765\u6E90\uFF09\u3002\u9002\u7528\uFF1A\u9700\u8981\u8BA2\u5355\u4E8B\u5B9E\u4E0E\u5E93\u5B58\u4E8B\u5B9E\u65F6\uFF1B\u4E0D\u9002\u7528\uFF1A\u7B97\u91D1\u989D/\u7A0E\u989D\uFF08\u7528 pricing.quote\uFF09\u3001\u7B97\u8FD0\u8D39\uFF08\u7528 freight.calc\uFF09\u3001\u67E5\u4F9B\u5E94\u5546\u753B\u50CF\uFF08\u7528 supplier.profile\uFF09\u3002",
   parameters: {
     orderId: { type: "string", description: "\u91C7\u8D2D\u8BA2\u5355\u53F7\uFF0C\u5982 PO-20261013-0042" },
     skuId: { type: "string", description: "SKU \u7F16\u7801\uFF0C\u5982 SKU-88213\uFF1B\u4E0E supplierId \u81F3\u5C11\u7ED9\u4E00\u4E2A\u67E5\u8BE2\u6761\u4EF6" },
@@ -132,7 +149,7 @@ const orderLookup = defineTool({
     const provenance = [];
     for (const row of rows) {
       provenance.push(
-        prov("orders", row.id, ["promised_at", "delivered_at", "status", "qty", "unit_price"]),
+        prov("orders", row.id, ["promised_at", "delivered_at", "status", "qty", "unit_price", "freight_rate"]),
         prov("suppliers", row.supplier_id, ["risk_level", "blacklisted", "delay_days_12m"]),
         prov("skus", row.sku_id, ["safety_stock", "on_hand", "in_transit", "moq"])
       );
@@ -142,13 +159,18 @@ const orderLookup = defineTool({
         lastOrderId: orders[0].orderId,
         lastSupplierId: orders[0].supplierId,
         lastSkuId: orders[0].skuId,
-        lastExceptionType: orders[0].isDelayed ? "DELAY" : void 0
+        lastExceptionType: orders[0].isDelayed ? "DELAY" : void 0,
+        // CR#1：物流商记忆（下一轮问答直接复用，不再为同一事实重复查询）
+        lastLogisticsProvider: `${orders[0].logisticsProviderName}\uFF08${orders[0].logisticsProvider}\uFF09`
       });
     }
     return { data: { orders }, provenance };
   }
 });
 export {
+  LOGISTICS_RULE,
+  LOGISTICS_THRESHOLDS,
+  logisticsProviderFor,
   orderLookup
 };
 //# sourceMappingURL=order-lookup.js.map

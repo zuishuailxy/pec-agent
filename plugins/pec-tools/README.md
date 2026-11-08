@@ -13,13 +13,13 @@ PEC 采购异常处置 Agent 插件。随 headless profile 加载（`.dsh-home/p
 | 工具 | 文件 | 说明 |
 |---|---|---|
 | `pec_data_catalog` | `src/tools/catalog.ts` | 6 张表行数（自检） |
-| `order_lookup` | `src/tools/order-lookup.ts` | 订单履约/库存，租户校验 |
+| `order_lookup` | `src/tools/order-lookup.ts` | 订单履约/库存/物流商（CR#1 派生），租户校验 |
 | `supplier_profile` | `src/tools/supplier-profile.ts` | 等级/黑名单/风险分/联系人脱敏 |
 | `pricing_quote` | `src/tools/pricing-quote.ts` | 阶梯价 + 金额/税额（Fixed 定点） |
 | `freight_calc` | `src/tools/freight-calc.ts` | 体积进位/总运费/计件；qty=0 → E_DIV_ZERO |
 | `contract_search` | `src/tools/contract-search.ts` | 条款检索（FTS5+同义词回退），无命中“未检索到” |
 | `ticket_similar` | `src/tools/ticket-similar.ts` | 历史工单召回（规则相似度 + 按订单去重） |
-| `advice_card` | `src/tools/advice-card.ts` | 建议卡（R7/黑名单/evidence 强制校验） |
+| `advice_card` | `src/tools/advice-card.ts` | 建议卡（R7 含 CR#1 财务会签/黑名单/evidence 强制校验） |
 | `memory_recall` / `memory_remember` / `memory_forget` | `src/tools/memory-tools.ts` | 两层记忆读写/撤销 |
 | `skill_write` | `src/tools/skill-write.ts` | 技能落盘（frontmatter/护栏/反例校验） |
 

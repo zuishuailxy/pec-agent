@@ -11,18 +11,20 @@
 | 键 | `${tenantId}:${userId}:${sessionId}` | `${tenantId}:${userId}` |
 | 字段上限 | 8 | 5 |
 | 生命周期 | 7 天 | 90 天（可撤销） |
-| 白名单字段 | `lastOrderId` / `lastSupplierId` / `lastSkuId` / `lastExceptionType` / `lastTicketId` / `lastClauseNo` / `currentAction` / `note` | `focusCategories` / `commonSuppliers` / `preferAction` / `lastOpenTicket` / `note` |
+| 白名单字段 | `lastOrderId` / `lastSupplierId` / `lastSkuId` / `lastExceptionType` / `lastTicketId` / `lastLogisticsProvider`（CR#1） / `currentAction` / `note` | `focusCategories` / `commonSuppliers` / `preferAction` / `lastOpenTicket` / `note` |
 | 更新语义 | 覆盖/合并写入 | 列表合并、动作计数累加；用户显式更正优先并留 history |
 
 **白名单外字段一律拒绝**（`INVALID_ARGUMENT`，列出允许字段），不静默丢弃——避免模型写入金额/数量等易过期事实被当成当前值。
+
+**CR#1 变更（自拟，非官方）**：会话白名单保持 8 个字段不超题面表 5-1 上限，用新增的 `lastLogisticsProvider` 换出从未被任何工具写入的 `lastClauseNo`；`advice_card` 的 `note` 增加审批路径与财务会签结论，供下一轮注入复用。
 
 ## 2. 抽取时机与来源
 
 | 来源 | 触发 | 写入 | 审计 `source` |
 |---|---|---|---|
-| 工具自动抽取 | `order_lookup` 命中单个订单 | `lastOrderId/lastSupplierId/lastSkuId/lastExceptionType` | `tool_inference` |
+| 工具自动抽取 | `order_lookup` 命中单个订单 | `lastOrderId/lastSupplierId/lastSkuId/lastExceptionType/lastLogisticsProvider`（CR#1 物流商，如 `德邦物流（DEBANG）`） | `tool_inference` |
 | 工具自动抽取 | `ticket_similar` 召回成功 | `lastTicketId/lastExceptionType/lastSupplierId`（+ `lastOrderId` 若带 orderId） | `tool_inference` |
-| 工具自动抽取 | `advice_card` 生成建议卡 | `lastOrderId/lastSupplierId/currentAction`（`note=newDate=…`） | `tool_inference` |
+| 工具自动抽取 | `advice_card` 生成建议卡 | `lastOrderId/lastSupplierId/currentAction` + `note`（`newDate=…;approval=…;financeCountersign=yes/no`，审批路径与财务会签为 CR#1 新增） | `tool_inference` |
 | 用户显式更正 | 模型/用户调用 `memory_remember({source:'user_correction'})` | 指定白名单字段 | `user_correction` |
 | 用户撤销 | `memory_forget({confirm:true})` | 删除整层键 | 写 `memory.forgotten` 审计 |
 

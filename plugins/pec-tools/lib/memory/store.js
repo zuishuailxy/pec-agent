@@ -11,7 +11,8 @@ const SESSION_FIELDS = [
   "lastSkuId",
   "lastExceptionType",
   "lastTicketId",
-  "lastClauseNo",
+  // CR#1：物流商记忆（替代从未被任何工具写入的 lastClauseNo，白名单保持 ≤8，不突破题面表 5-1 上限）
+  "lastLogisticsProvider",
   "currentAction",
   "note"
 ];

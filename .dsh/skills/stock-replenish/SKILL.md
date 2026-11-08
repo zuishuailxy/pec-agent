@@ -11,7 +11,7 @@ whenToUse: 订单状态缺货或库存低于安全库存时的补货测算与建
 2. 计算补货缺口：`raw = 安全库存 × 2 − 当前库存 − 在途`。
 3. 向上取整到 MOQ 整数倍：`qty = ceil(raw / MOQ) × MOQ`。raw ≤ 0 时不补货，直接说明库存充足并结束。
 4. `supplier_profile`（传 supplierId）：确认 `blacklist`、等级、风险分、近 12 月延迟天数；联系人已脱敏，只引用状态。
-5. 需要出处置建议时调 `advice_card`：action=replenish，orderId=当前单，params={"qty": 补货量}，evidence 至少含 `orders#<订单号>`。**供应商为黑名单时 needHuman=true，不得降级。** 金额不要手填，交由工具按订单 qty × unit_price 复算，避免与补货数量口径混淆。
+5. 需要出处置建议时调 `advice_card`：action=replenish，orderId=当前单，params={"qty": 补货量}，evidence 至少含 `orders#<订单号>`。**供应商为黑名单时 needHuman=true，不得降级。** 金额不要手填，交由工具按订单 qty × unit_price 复算，避免与补货数量口径混淆。审批路径以工具返回为准：**金额 ≥100,000.00 时工具会要求财务会签（CR#1），不得省略**。
 6. 若用户要求沉淀，再用 `skill_write` 落盘本流程；已存在同名技能时先确认是否 overwrite。
 
 ## 计算示例
@@ -24,6 +24,7 @@ raw = 800×2 − 420 − 200 = 980；980/500 = 1.96 → 向上取整 2 → **100
 - 必须先把**在途**计入供给再算缺口；在途是已下单未到货，不能重复下单。
 - 只做整数倍向上取整，禁止向下取整或凑整到更小的数；取整倍数必须能被 MOQ 整除。
 - 黑名单供应商（blacklist=是）一律 `needHuman=true` 并走人工审批；模型只能升级不能降级。
+- 金额 ≥ 100,000.00：审批路径必须含财务会签（CR#1），以 `advice_card` 返回的 `approvalPath` / `financeCountersign` 为准；不得自行省略或改写。
 - 历史工单（ticket_similar）只作参考，不能覆盖当前订单的库存与 MOQ 事实。
 - 补货动作不执行下单/付款，只输出建议卡。
 
@@ -35,3 +36,4 @@ raw = 800×2 − 420 − 200 = 980；980/500 = 1.96 → 向上取整 2 → **100
 - ❌ 用历史工单里其他订单的 MOQ/库存数据替代本单 `order_lookup` 结果。
 - ❌ 在 `advice_card` 里手填金额，导致与订单 qty × unit_price 复算结果不一致被拒。
 - ❌ 补货量看似合理就跳过 `supplier_profile`，漏掉黑名单/高风险导致的强制人工审批。
+- ❌ 金额 ≥10 万的补货卡只写“采购主管”而漏财务会签（CR#1）：10–20 万档为“采购主管+财务会签”。

@@ -56,7 +56,7 @@
            ticket_similar（历史同类工单 + 处置动作）
  ③ 计算    pricing_quote / freight_calc（纯函数定点）
             contract_search（FTS5+同义词，只引用命中的条款号；无命中写“未检索到”）
- ④ 建议    advice_card：工具权威复算金额、校验 evidence 存在性、强制 R7/黑名单、确定性 newDate
+ ④ 建议    advice_card：工具权威复算金额、校验 evidence 存在性、强制 R7/黑名单（含 CR#1 ≥10 万财务会签）、确定性 newDate
  ⑤ 记忆    order_lookup/ticket_similar/advice_card 自动写会话记忆；下一 step 由 systemPrompt.section 注入
  ⑥ 复核    人确认/修改 → 标注集 → 技能沉淀（skill_write）/ A/B 素材
 ```
@@ -103,7 +103,7 @@ PEC_USER_ID（进程环境，可信）
        └─ 空记忆返回 ''（整段消失）；异常 try/catch 降级；每会话首次注入写 memory.injected 审计
 ```
 
-- 会话记忆：`lastOrderId/lastSupplierId/lastSkuId/lastExceptionType/lastTicketId/lastClauseNo/currentAction/note`。
+- 会话记忆：`lastOrderId/lastSupplierId/lastSkuId/lastExceptionType/lastTicketId/lastLogisticsProvider/currentAction/note`（CR#1 换出 `lastClauseNo`，仍为 8 字段）。
 - 用户记忆：`focusCategories/commonSuppliers/preferAction/lastOpenTicket/note`；用户显式更正优先并留 history。
 - 隔离：键 = `${tenantId}:${userId}:${sessionId}` / `${tenantId}:${userId}`；跨租户不命中（专项 m-* 已断言）。
 

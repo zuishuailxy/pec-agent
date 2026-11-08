@@ -123,7 +123,7 @@ const { toFixed: moneyToFixed } = await import('../plugins/pec-tools/lib/core/mo
 
 ok('R7 49999.99 → 自动', approvalFor(moneyToFixed('49999.99'), false).approvalPath === '自动（无需人工审批）')
 ok('R7 50000.00 → 采购主管（非自动）', approvalFor(moneyToFixed('50000'), false).approvalPath === '采购主管')
-ok('R7 199999.99 → 采购主管', approvalFor(moneyToFixed('199999.99'), false).approvalPath === '采购主管')
+ok('R7 199999.99 → 采购主管+财务会签（CR#1）', approvalFor(moneyToFixed('199999.99'), false).approvalPath === '采购主管+财务会签')
 ok('R7 200000.00 → 总监+财务', approvalFor(moneyToFixed('200000'), false).approvalPath === '总监+财务')
 const r7black = approvalFor(moneyToFixed('100'), true)
 ok('R7 黑名单一律人工', r7black.needHuman === true && /黑名单/.test(r7black.approvalPath), JSON.stringify(r7black))
@@ -153,6 +153,30 @@ ok('advice reschedule 忽略模型 newDate', card4?.data?.card?.newDate === '202
 const card5 = await run('advice-escalate', advice, { action: 'split', orderId: 'PO-20260906-0114', needHuman: true })
 ok('advice 模型可升级 needHuman（自动流程）', card5?.data?.card?.approvalPath === '自动（无需人工审批）' && card5?.data?.card?.needHuman === true, JSON.stringify(card5?.data?.card?.approvalPath))
 
+// ---------- CR#1（自拟，非官方）：order_lookup 物流商派生 + R7 财务会签档 ----------
+const { logisticsProviderFor } = await import('../plugins/pec-tools/lib/tools/order-lookup.js')
+ok('CR 物流商 92 档 → 顺丰速运', logisticsProviderFor(92).provider === 'SF-EXPRESS' && logisticsProviderFor(92).providerName === '顺丰速运', JSON.stringify(logisticsProviderFor(92)))
+ok('CR 物流商 85 档 → 德邦物流', logisticsProviderFor(85).provider === 'DEBANG' && logisticsProviderFor(85).providerName === '德邦物流', JSON.stringify(logisticsProviderFor(85)))
+ok('CR 物流商 78 档 → 安能物流', logisticsProviderFor(78).provider === 'ANE' && logisticsProviderFor(78).providerName === '安能物流', JSON.stringify(logisticsProviderFor(78)))
+ok('CR 物流商非法值拒绝', (() => { try { logisticsProviderFor(-1); return false } catch (e) { return e.code === 'INVALID_ARGUMENT' } })())
+ok('CR 0042 物流商 = 德邦物流 + 派生来源', o?.logisticsProvider === 'DEBANG' && o?.logisticsProviderName === '德邦物流' && /derived_rule_CR1-v1/.test(o?.logisticsProviderSource ?? ''), JSON.stringify([o?.logisticsProvider, o?.logisticsProviderSource]))
+const orderRenderCr = tools.orderLookup.output.render({}, order)[0].text
+ok('CR order_lookup render 含物流商/来源', /物流商 德邦物流/.test(orderRenderCr) && /derived_rule_CR1-v1/.test(orderRenderCr), orderRenderCr.slice(0, 400))
+ok('CR 0134 物流商 = 德邦物流（85 档）', (await run('order-cr-0134', tools.orderLookup, { orderId: 'PO-20260920-0134' }))?.data?.orders?.[0]?.logisticsProviderName === '德邦物流')
+
+ok('CR R7 99999.99 → 采购主管（不财务会签）', approvalFor(moneyToFixed('99999.99'), false).approvalPath === '采购主管' && approvalFor(moneyToFixed('99999.99'), false).financeCountersign === false)
+const r7finance = approvalFor(moneyToFixed('100000'), false)
+ok('CR R7 100000.00 → 采购主管+财务会签（临界）', r7finance.approvalPath === '采购主管+财务会签' && r7finance.financeCountersign === true && r7finance.ruleHits.includes('CR1:GE_100000_FINANCE'), JSON.stringify(r7finance))
+ok('CR R7 200000.00 → 总监+财务（财务会签=true）', approvalFor(moneyToFixed('200000'), false).approvalPath === '总监+财务' && approvalFor(moneyToFixed('200000'), false).financeCountersign === true)
+ok('CR R7 50000.00 不触发财务会签', approvalFor(moneyToFixed('50000'), false).financeCountersign === false)
+
+const cardCr = await run('advice-cr-finance', advice, { action: 'split', orderId: 'PO-20260920-0134' })
+ok('CR advice 0134 金额 126,000.00', cardCr?.data?.card?.amount === '126000.00', JSON.stringify(cardCr?.data?.card?.amount))
+ok('CR advice 0134 → 采购主管+财务会签 / 需人工', cardCr?.data?.card?.approvalPath === '采购主管+财务会签' && cardCr?.data?.card?.financeCountersign === true && cardCr?.data?.card?.needHuman === true, JSON.stringify([cardCr?.data?.card?.approvalPath, cardCr?.data?.card?.financeCountersign]))
+const crRender = advice.output.render({}, cardCr)[0].text
+ok('CR advice render 含财务会签', /财务会签：需/.test(crRender) && /126,000\.00/.test(crRender), crRender.slice(0, 400))
+ok('CR 旧档位不回归（0055 恰好 5 万维持采购主管/无财务会签）', card2?.data?.card?.approvalPath === '采购主管' && card2?.data?.card?.financeCountersign === false, JSON.stringify([card2?.data?.card?.approvalPath, card2?.data?.card?.financeCountersign]))
+
 for (const [name, args, expectCode, expectMsg] of [
   ['advice amount 造假', { action: 'reschedule', orderId: 'PO-20261013-0042', amount: 1 }, 'INVALID_ARGUMENT', /权威金额不一致/],
   ['advice evidence 不存在', { action: 'reschedule', orderId: 'PO-20261013-0042', evidence: ['orders#NOPE'] }, 'INVALID_ARGUMENT', /E_EVIDENCE_NOT_FOUND/],
@@ -173,6 +197,15 @@ const { unlinkSync } = await import('node:fs')
 const MEM_T3 = '/tmp/pec-memory-t3.json'
 try { unlinkSync(MEM_T3) } catch {}
 process.env.PEC_MEMORY_PATH = MEM_T3
+
+const orderMem = await run('cr-order-memory', tools.orderLookup, { orderId: 'PO-20260920-0134' }, execT3)
+const memAfterOrder = await run('cr-recall-logistics', mem.memoryRecall, { scope: 'session' }, execT3)
+ok('CR 会话记忆含 lastLogisticsProvider', memAfterOrder?.data?.session?.fields?.lastLogisticsProvider === '德邦物流（DEBANG）', JSON.stringify(memAfterOrder?.data?.session?.fields))
+const { SESSION_FIELDS: CR_SESSION_FIELDS, USER_FIELDS: CR_USER_FIELDS } = await import('../plugins/pec-tools/lib/memory/store.js')
+ok('CR 会话白名单仍为 8 字段且含物流商', CR_SESSION_FIELDS.length === 8 && CR_SESSION_FIELDS.includes('lastLogisticsProvider') && !CR_SESSION_FIELDS.includes('lastClauseNo'), JSON.stringify(CR_SESSION_FIELDS))
+ok('CR 用户白名单仍为 5 字段（不受 CR 影响）', CR_USER_FIELDS.length === 5, JSON.stringify(CR_USER_FIELDS))
+const memClause = await run('cr-whitelist-clause', mem.memoryRemember, { scope: 'session', fields: { lastClauseNo: 'CL-07' } }, execT3)
+ok('CR 白名单外(旧字段) lastClauseNo 被拒绝', memClause?.__error?.code === 'INVALID_ARGUMENT' && /白名单/.test(memClause?.__error?.message ?? ''), JSON.stringify(memClause?.__error?.message))
 
 const memS1 = await run('mem-session-write', mem.memoryRemember, { scope: 'session', fields: { lastOrderId: 'PO-20261013-0042', lastSupplierId: 'SUP-1042', lastExceptionType: 'DELAY' } }, execT3)
 ok('memory 会话写入', memS1?.data?.fields?.lastOrderId === 'PO-20261013-0042' && memS1?.data?.ttlDays === 7, JSON.stringify(memS1?.data))
@@ -251,6 +284,7 @@ for (const [name, value] of [
   ['supplier_profile', supplier?.data],
   ['ticket_similar', t1?.data],
   ['advice_card', card1?.data],
+  ['advice_card CR 财务会签', cardCr?.data],
   ['memory_recall', memR1?.data],
   ['memory_remember', memS1?.data],
   ['skill_write', skillValid?.data],

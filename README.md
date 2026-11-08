@@ -67,13 +67,13 @@ pec-agent/
 | 题面名 | 实现名 | 能力 |
 |---|---|---|
 | `pec.data.catalog` | `pec_data_catalog` | 6 张表行数（自检） |
-| `order.lookup` | `order_lookup` | 订单/交期/状态/库存（租户校验 + provenance） |
+| `order.lookup` | `order_lookup` | 订单/交期/状态/库存（租户校验 + provenance）；**CR#1 物流商派生字段** |
 | `supplier.profile` | `supplier_profile` | 等级/黑名单/近 12 月延迟/风险分/联系人脱敏 |
 | `pricing.quote` | `pricing_quote` | 阶梯价 + 金额/税额定点计算（R1/R4） |
 | `freight.calc` | `freight_calc` | 体积进位（3.2→4、0.4→1）/ 总运费 / 计件（qty=0 → E_DIV_ZERO） |
 | `contract.search` | `contract_search` | FTS5 + 同义词回退检索条款；无命中明确“未检索到” |
 | `ticket.similar` | `ticket_similar` | 按异常类型+供应商+金额区间召回历史工单（规则相似度 + 按订单去重） |
-| —（新增） | `advice_card` | 建议卡：R7 审批/黑名单/证据存在性由工具强制校验 |
+| —（新增） | `advice_card` | 建议卡：R7 审批（含 **CR#1 ≥10 万财务会签**）/黑名单/证据存在性由工具强制校验 |
 | —（新增） | `memory_recall` / `memory_remember` / `memory_forget` | 两层记忆读写与撤销 |
 | —（新增） | `skill_write` | 技能落盘：frontmatter/护栏/反例校验 + 目录白名单 + 审计 |
 
@@ -110,6 +110,7 @@ node eval/collect.mjs --gate      # 合并报告 + 门禁（任一已评测指�
 - **脱敏**：联系人按角色掩码、合同原文 buyer/manager/auditor 不可见；脱敏/拒绝都留痕。
 - **无害**：只读数据 + 建议卡，不执行写操作；人工确认体现在 `needHuman`/审批路径与审计，headless 下不依赖平台 `ask`。
 - **题面缺口**（已声明，不伪造）：R8 汇率无字段 → 声明不支持；R11 成本价无字段 → 字段级越权落到 contacts 掩码+跨租户；R9 风险分为自定公式；R10 等值边界/R7 ≥20 万无样本 → 纯函数断言。
+- **CR#1（自拟，非官方；线下无官方 CR）**：`order_lookup` 增物流商派生字段（数据表无该字段，按物流单价 78/85/92 三档确定性派生并标 `derived_rule_CR1-v1`）；`advice_card` 的 R7 增「金额 ≥100,000.00 需财务会签」档（10–20 万为“采购主管+财务会签”）；技能护栏与记忆抽取同步。假设与回归见 `CHANGELOG.md` v1.0。
 
 ## 8. 打包与提交提醒
 

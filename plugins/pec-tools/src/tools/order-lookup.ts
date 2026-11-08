@@ -41,9 +41,46 @@ const SELECT = `
   join skus k on k.id = o.sku_id
 `
 
+/**
+ * CR#1（自拟，非官方）：`order_lookup` 输出物流商（logisticsProvider）。
+ *
+ * 数据事实：`orders` 表没有物流商字段（数据包为只读，不新增列/不改 schema），
+ * 因此物流商按订单已有的「物流单价」档位做**确定性规则派生**，并标 `logisticsProviderSource`
+ * 让调用方知道这是派生值而不是库内事实（答辩时可指回本条假设；若未来数据表新增 carrier 列，
+ * 只需替换本函数实现，输出契约不变）。
+ *
+ * 档位（真实数据 3 档：78 / 85 / 92）：
+ *  - freight_rate ≥ 90 → SF-EXPRESS 顺丰速运（高单价/加急档）
+ *  - 82 ≤ freight_rate < 90 → DEBANG 德邦物流（标准档）
+ *  - freight_rate < 82 → ANE 安能物流（经济档）
+ */
+export const LOGISTICS_RULE = 'derived_rule_CR1-v1'
+export const LOGISTICS_THRESHOLDS = { express: 90, standard: 82 } as const
+
+export interface LogisticsProvider {
+  provider: string
+  providerName: string
+  rule: string
+}
+
+export function logisticsProviderFor(freightRate: number): LogisticsProvider {
+  if (!Number.isFinite(freightRate) || freightRate < 0) throw invalid(`非法物流单价：${freightRate}`)
+  if (freightRate >= LOGISTICS_THRESHOLDS.express) {
+    return { provider: 'SF-EXPRESS', providerName: '顺丰速运', rule: `${LOGISTICS_RULE}:freight_rate>=90` }
+  }
+  if (freightRate >= LOGISTICS_THRESHOLDS.standard) {
+    return { provider: 'DEBANG', providerName: '德邦物流', rule: `${LOGISTICS_RULE}:82<=freight_rate<90` }
+  }
+  return { provider: 'ANE', providerName: '安能物流', rule: `${LOGISTICS_RULE}:freight_rate<82` }
+}
+
 function mapOrder(row: OrderRow) {
   const delayDays = row.delivered_at ? dayDiff(row.promised_at, row.delivered_at) : null
+  const logistics = logisticsProviderFor(row.freight_rate)
   return {
+    logisticsProvider: logistics.provider,
+    logisticsProviderName: logistics.providerName,
+    logisticsProviderSource: logistics.rule,
     orderId: row.id,
     supplierId: row.supplier_id,
     supplierName: row.supplier_name,
@@ -77,6 +114,7 @@ function renderOrder(order: ReturnType<typeof mapOrder>, refs: ProvenanceRef[]):
   return [
     `订单 ${order.orderId}：状态 ${order.status}；供应商 ${order.supplierId} ${order.supplierName}（${order.riskLevel} 级，黑名单${order.blacklisted ? '是' : '否'}，近 12 月延迟 ${order.delayDays12m} 天）`,
     `  SKU ${order.skuId} ${order.skuName} × ${order.qty}，单价 ${order.unitPrice}；下单 ${order.orderedAt}，承诺交期 ${order.promisedAt}，实际交期 ${order.deliveredAt ?? '未交付'}`,
+    `  物流商 ${order.logisticsProviderName}（${order.logisticsProvider}；来源 ${order.logisticsProviderSource}，数据表无物流商字段，按物流单价 ${order.freightRate} 档位确定性派生）`,
     `  延迟天数 ${order.delayDays ?? 'N/A'}；体积 ${order.volume}；物流单价 ${order.freightRate}`,
     `  库存：当前 ${stock.onHand} + 在途 ${stock.inTransit}，安全库存 ${stock.safetyStock}，MOQ ${stock.moq}${stock.belowSafety ? '（低于安全库存）' : ''}`,
   ]
@@ -86,7 +124,7 @@ function renderOrder(order: ReturnType<typeof mapOrder>, refs: ProvenanceRef[]):
 export const orderLookup = defineTool({
   name: 'order_lookup',
   description:
-    '按订单号、SKU 或供应商查询采购订单的履约信息（承诺/实际交期、延迟天数、状态、库存与在途）。适用：需要订单事实与库存事实时；不适用：算金额/税额（用 pricing.quote）、算运费（用 freight.calc）、查供应商画像（用 supplier.profile）。',
+    '按订单号、SKU 或供应商查询采购订单的履约信息（承诺/实际交期、延迟天数、状态、库存与在途、物流商）。物流商为 CR#1 派生字段（数据表无该字段，按物流单价档位确定性派生，标注来源）。适用：需要订单事实与库存事实时；不适用：算金额/税额（用 pricing.quote）、算运费（用 freight.calc）、查供应商画像（用 supplier.profile）。',
   parameters: {
     orderId: { type: 'string', description: '采购订单号，如 PO-20261013-0042' },
     skuId: { type: 'string', description: 'SKU 编码，如 SKU-88213；与 supplierId 至少给一个查询条件' },
@@ -166,7 +204,7 @@ export const orderLookup = defineTool({
     const provenance: ProvenanceRef[] = []
     for (const row of rows) {
       provenance.push(
-        prov('orders', row.id, ['promised_at', 'delivered_at', 'status', 'qty', 'unit_price']),
+        prov('orders', row.id, ['promised_at', 'delivered_at', 'status', 'qty', 'unit_price', 'freight_rate']),
         prov('suppliers', row.supplier_id, ['risk_level', 'blacklisted', 'delay_days_12m']),
         prov('skus', row.sku_id, ['safety_stock', 'on_hand', 'in_transit', 'moq']),
       )
@@ -177,6 +215,8 @@ export const orderLookup = defineTool({
         lastSupplierId: orders[0].supplierId,
         lastSkuId: orders[0].skuId,
         lastExceptionType: orders[0].isDelayed ? 'DELAY' : undefined,
+        // CR#1：物流商记忆（下一轮问答直接复用，不再为同一事实重复查询）
+        lastLogisticsProvider: `${orders[0].logisticsProviderName}（${orders[0].logisticsProvider}）`,
       })
     }
     return { data: { orders }, provenance }

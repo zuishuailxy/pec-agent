@@ -84,11 +84,16 @@
 - [x] `CHANGELOG.md` 补全 v0.1–v0.9（T1–T8 + 修复 + 口径决策）；`git tag d1`（annotated）；工作区干净
 - **完成定义**：`git status` 干净、`git tag` 含 `d1`；README 三段命令可复制执行；build + 113 passed + 门禁 exit 0。
 
-## T9 CR#1 落地 + 全回归（D2）
+## T9 CR#1 落地 + 全回归（D2，已完成 2026-11-08）
 
-- [ ] 自拟变更（建议：`order_lookup` 加物流商字段 + 金额 ≥10 万需财务会签，同时影响工具/技能/记忆）
-- [ ] 既有 golden set 全回归 + 新增 ≥2 条用例；`CHANGELOG.md` 标注“自拟 CR，不是官方 CR#1”
-- **完成定义**：CR 后 12 条全绿 + 新用例通过；45 分钟内完成。
+- [x] 自拟变更：`order_lookup` 加物流商派生字段（`derived_rule_CR1-v1`：物流单价 ≥90 顺丰 / 82–89.99 德邦 / <82 安能）+ `advice_card` 金额 ≥10 万需财务会签（10–20 万 → 采购主管+财务会签）；同时影响**工具/技能/记忆三层**（明细见 `CHANGELOG.md` v1.0）
+- [x] 既有 golden set 全回归 + 新增 `g-13`（物流商）/ `g-14`（财务会签）2 条用例；`CHANGELOG.md` v1.0 标注“自拟 CR，不是官方 CR#1”
+- **完成定义**：CR 后既有 12 条全绿 + 新用例通过 → **golden 14/14 PASS**，`node eval/collect.mjs --gate` 六指标全绿（退出码 0）；工具冒烟 **133 passed / 0 failed**。
+- **验证命令**：
+  ```bash
+  cd pec-agent && ./dev/build.sh && node dev/test-tools.mjs
+  bash eval/run.sh && node eval/collect.mjs --gate
+  ```
 
 ## T10 失败归因 + 修复对照（D2）
 

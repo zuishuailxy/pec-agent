@@ -136,7 +136,7 @@ export const memoryRecall = defineTool({
 export const memoryRemember = defineTool({
   name: 'memory_remember',
   description:
-    '写入记忆白名单字段：会话记忆（lastOrderId/lastSupplierId/lastSkuId/lastExceptionType/lastTicketId/lastClauseNo/currentAction/note，≤8）或用户记忆（focusCategories/commonSuppliers/preferAction/lastOpenTicket/note，≤6）。用户显式更正用 source=user_correction（覆盖旧值并留 history）。白名单外字段会被拒绝。适用：用户明确说“记住/更正”时；不适用：自动抽取（工具已自动写会话记忆）。',
+    '写入记忆白名单字段：会话记忆（lastOrderId/lastSupplierId/lastSkuId/lastExceptionType/lastTicketId/lastLogisticsProvider/currentAction/note，≤8）或用户记忆（focusCategories/commonSuppliers/preferAction/lastOpenTicket/note，≤6）。用户显式更正用 source=user_correction（覆盖旧值并留 history）。白名单外字段会被拒绝。适用：用户明确说“记住/更正”时；不适用：自动抽取（工具已自动写会话记忆）。',
   parameters: {
     scope: { type: 'string', required: true, description: 'session 或 user' },
     fields: { type: 'object', additionalProperties: true, required: true, description: '白名单字段对象，如 {"lastOrderId":"PO-20261013-0042"} 或 {"commonSuppliers":["SUP-1042"]}' },

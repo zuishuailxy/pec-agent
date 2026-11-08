@@ -153,7 +153,7 @@ resolveIdentity(sessionId?): { userId, tenantId, role }
 | # | 实现名（题面名） | 读/算 | 关键设计 | 状态 |
 |---|---|---|---|---|
 | 0 | `pec_data_catalog` | 读 | 列出 6 张表行数，用于“数据能查”自检 | ✅ 已实现 |
-| 1 | `order_lookup`（order.lookup） | 读 | 订单/交期/状态/库存；租户校验；单订单写会话记忆 | ✅ |
+| 1 | `order_lookup`（order.lookup） | 读 | 订单/交期/状态/库存；租户校验；单订单写会话记忆；**CR#1 物流商派生字段**（`logisticsProvider/Name/Source`） | ✅ D1+CR#1 |
 | 2 | `supplier_profile`（supplier.profile） | 读 | 等级/黑名单/近 12 月延迟/自定风险分；联系人按角色脱敏 | ✅ |
 | 3 | `pricing_quote`（pricing.quote） | 纯函数 | 阶梯价（按总量落唯一区间，不拆单）+ 金额/税额定点 | ✅ |
 | 4 | `freight_calc`（freight.calc） | 纯函数 | 体积向上取整（3.2→4、0.4→1）、总运费、计件；qty=0→`E_DIV_ZERO` | ✅ |
@@ -209,9 +209,10 @@ resolveIdentity(sessionId?): { userId, tenantId, role }
   - `orderId` 必须存在且属当前租户（跨租户 `POLICY_DENIED`+审计）；
   - 金额以 `qty × unit_price`（Fixed，HALF_UP 2 位）为**权威值**；传入 `amount` 不一致 → `INVALID_ARGUMENT`；
   - `evidence[]` 每条 ref 必须真实存在（orders/suppliers/skus/contracts/tickets），否则 `INVALID_ARGUMENT(E_EVIDENCE_NOT_FOUND)`；条款 ref 必须来自 `contract_search` 可检索到的事实；
-  - **R7**：`amount < 50000.00` → 自动；`50000 ≤ amount < 200000` → 采购主管；`amount ≥ 200000` → 总监+财务；黑名单供应商 → 一律人工并强制 `needHuman=true`。输出 `ruleHits[]`。
+  - **R7（含 CR#1 财务会签档）**：`amount < 50000.00` → 自动；`50000 ≤ amount < 100000` → 采购主管；`100000 ≤ amount < 200000` → **采购主管+财务会签**；`amount ≥ 200000` → 总监+财务；黑名单供应商 → 一律人工并强制 `needHuman=true`。输出 `ruleHits[]` 与 `financeCountersign`（CR#1）；临界 50,000.00 走主管、临界 100,000.00 起需财务会签。
   - **`newDate` 确定性重算**：`reschedule` 时忽略模型传值，统一取 `delivered_at + 14 天`（题面 §6.1 样例技能口径；0042 → 2026-11-16）；`delivered_at` 为 NULL 时回退 `promised_at + 14` 并标 `newDateSource`。**口径冲突记录**：历史工单 `EX-2061` 与题面 §5.3 示例写 2026-10-28（=承诺交期+8），与本口径不一致；按用户决定以题面样例技能口径为准，CHANGELOG 记录偏差。
-- `render()`：动作/参数/金额/审批路径/风险/置信度/是否人工/证据来源。
+- `render()`：动作/参数/金额/审批路径/财务会签（CR#1）/风险/置信度/是否人工/证据来源。
+- CR#1 影响面：`approvalFor()` 纯函数新增 `finance` 阈值与 `financeCountersign` 字段；卡片、`ruleSummary`、自动风险、会话记忆 `note`（`approval=…;financeCountersign=…`）同步；旧档位（<10 万、≥20 万、黑名单）输出保持不变。
 
 ### 4.6 `supplier_profile` 风险分（R9 自定口径）
 
@@ -260,14 +261,14 @@ score = 100                                     if blacklisted
 | 维度 | 会话记忆 | 用户记忆 |
 |---|---|---|
 | 归属 | 一次会话（一个工单） | 一个用户，跨会话 |
-| 白名单字段 | ≤8：`lastOrderId/lastSupplierId/lastSkuId/lastExceptionType/lastTicketId/lastClauseNo/currentAction/note` | ≤5：`focusCategories/commonSuppliers/preferAction/lastOpenTicket/note` |
+| 白名单字段 | ≤8：`lastOrderId/lastSupplierId/lastSkuId/lastExceptionType/lastTicketId/lastLogisticsProvider/currentAction/note`（CR#1：用 `lastLogisticsProvider` 换出从未被写入的 `lastClauseNo`，白名单仍为 8） | ≤5：`focusCategories/commonSuppliers/preferAction/lastOpenTicket/note` |
 | 生命周期 | 7 天 | 默认 90 天，可撤销（`memory_forget`） |
 | 隔离键 | `${tenantId}:${userId}:${sessionId}` | `${tenantId}:${userId}` |
 | 冲突 | 用户显式更正优先 | 覆盖写 history（最近 10 条，含 previous/next/source/at） |
 
 - 存储：`memory/store.json`（`PEC_MEMORY_PATH` 可替换，评测隔离）；写入即原子落盘 + 审计（`memory.*`）。
 - 可变事实（金额/数量）不进入画像白名单，避免过期值被当当前值。
-- 抽取：工具侧自动写会话记忆（`order_lookup` 写订单/供应商/SKU；`ticket_similar` 写工单/类型；`advice_card` 写动作），用户更正走 `memory_remember({source:'user_correction'})`；`memory/extract.md` 写规则与示例。
+- 抽取：工具侧自动写会话记忆（`order_lookup` 写订单/供应商/SKU/物流商；`ticket_similar` 写工单/类型；`advice_card` 写动作与 `note=approval=…;financeCountersign=…`，CR#1），用户更正走 `memory_remember({source:'user_correction'})`；`memory/extract.md` 写规则与示例。
 
 ### 6.2 注入（D1 已实现并验证）
 
@@ -292,7 +293,7 @@ score = 100                                     if blacklisted
 
 ## 8. 评测与提效设计
 
-### 8.1 golden set（12 条，四类；D1 已实现，12/12 通过）
+### 8.1 golden set（D1 12 条四类；CR#1 后 14 条五类，14/14 通过）
 
 | 类别 | 条数 | 样本 | 通过判据 |
 |---|---|---|---|
@@ -300,10 +301,12 @@ score = 100                                     if blacklisted
 | 边界 | 3 | 0099 qty=0 / 0.40 与 3.20 进位 / 0055 恰好 50,000.00 | 数值逐位对齐（E_DIV_ZERO/85.00/340.00/主管） |
 | 对抗 | 2 | 合同文本夹带指令 / 跨租户取数 | 不执行注入、不越权（POLICY_DENIED+留痕） |
 | 记忆技能 | 2 | 两轮追问 / 技能命中 | 不重复提问、命中或合理回退 |
+| CR#1 | 2 | g-13 物流商派生字段 / g-14 金额 ≥10 万财务会签 | 字段与来源口径正确、审批路径含财务会签 |
 
 每条用例：`{id, category, user, turns[], expect:{toolsAll/toolsAny/toolsMax, toolCalls, toolErrorContains, mustContain/mustContainAny/mustNotContain, provenanceRefs, auditEvents, noCompliantCard, skillHit, memoryNoRepeat}}`；`eval/run.sh` headless 批跑（多轮自动取 sessionId，记忆/审计/技能目录按 case 隔离），`eval/collect.mjs` 解析事件流断言 + 统计 + `--gate`（不达标非 0 退出）。
 **v1 结果（12/12）**：准确率 100%、引用可溯 100%（8/8 用例含全部来源）、记忆命中 100%、技能复用 100%、越权拦截 100%；提效 pending（T6）。门禁自测：改坏 g-12 skillHit → 退出码 1。
 **v2 结果（T6 后，六指标全绿）**：准确率 100%、引用可溯 100%、记忆命中 100%（6/6）、技能复用 100%（3/3）、提效 73.5%、越权拦截 100%（10/10）；`node eval/collect.mjs --gate` 退出码 0。
+**CR#1 全回归（T9）**：golden set 扩为 14 条（+g-13 物流商 / +g-14 财务会签），既有 12 条全部保持通过；工具冒烟 **133 passed**。
 
 ### 8.2 专项集（D1 已实现）
 
@@ -392,7 +395,11 @@ score = 100                                     if blacklisted
 ## 12. 扩展点与 CR#1
 
 - **扩展点**：工具注册集中在 `index.ts` + `business.ts`；策略集中在 `policy/*`；新增工具 = 一个文件 + 注册 + `tool-surface` allow + `build.sh` entry；技能 = `.dsh/skills/<name>/SKILL.md`；记忆字段 = `memory/store.ts` 白名单常量。CR#1 只应改“工具注册/策略配置/技能文本/记忆字段”，不改执行链路。
-- **自拟 CR#1（计划 T9，非官方）**：`order_lookup` 增加物流商字段 + 金额 ≥10 万需财务会签 → 同时影响工具（字段/参数）、技能（护栏阈值）、记忆（画像/待办），45 分钟落地、既有 12 条全回归、新增 ≥2 条用例、CHANGELOG 标注“自拟 CR”。
+- **自拟 CR#1（T9 已落地，非官方、线下无官方 CR）**：`order_lookup` 增加物流商字段 + 金额 ≥10 万需财务会签，45 分钟落地、既有 12 条全回归 + 新增 2 条（g-13/g-14）、CHANGELOG 标注“自拟 CR”。影响面严格落在声明扩展点内：
+  - **工具**：`order_lookup` 输出 `logisticsProvider/Name/Source`（数据表无该字段 → 按物流单价 78/85/92 三档确定性派生，标 `derived_rule_CR1-v1`）；`advice_card` 的 `approvalFor()` 新增 `finance=100000.00` 阈值与 `financeCountersign` 字段，10–20 万档变“采购主管+财务会签”。
+  - **技能**：`delay-small-standard` 步骤 1 取物流商、护栏补 10 万/20 万档；`stock-replenish` 护栏补财务会签（以卡片返回为准）。
+  - **记忆**：`order_lookup` 写 `lastLogisticsProvider`（白名单 8 条不变，换出未使用的 `lastClauseNo`）；`advice_card` 的 `note` 写入 `approval=…;financeCountersign=…`，下一轮注入可直接复用。
+  - **假设（已写入 CHANGELOG）**：数据包无物流商字段且只读，派生规则为演示口径；若后续 `orders` 新增 carrier 列，只需替换 `logisticsProviderFor()` 实现，输出契约不变。
 - 失败归因 1 例（计划 T10）：候选“模型引用未检索到的条款号”或“金额二次 rescale”，记录修复前后对照。
 
 ---
@@ -420,5 +427,6 @@ bash eval/run.sh && node eval/collect.mjs --gate
 ## 14. 交付状态与已知缺口
 
 - **已完成（D1）**：基线脚手架 + 6 个业务工具（含 `ticket_similar` 历史召回）+ `advice_card` 建议卡 + 3 个记忆工具与每轮注入 + `skill_write`；技能 A（手写 `delay-small-standard`）与技能 B（Agent 沉淀 `stock-replenish`）均命中验证；guard/审计/脱敏/工具面；定点金额与 provenance；**golden set 12 条 + 专项集 + A/B + 批跑/统计/门禁：六指标全绿（准确率/引用/记忆/技能/越权 100%，提效 73.5%）**；`plan.md/todo.md/design.md/CHANGELOG.md/memory/extract.md/eval/traces/`；工具冒烟 **113 passed**；headless 端到端：订单查询、历史召回、建议卡、两轮记忆、技能沉淀与命中。
-- **计划中（D2）**：CR#1（T9）、失败归因（T10）、评测/A-B 定稿（T11）、defense（T12）、干净环境复现 + 打包 + `d2`（T13）。**traces 四类（T7）与文档/`d1`（T8）已完成**。
+- **已完成（D2 · T9）**：自拟 CR#1 落地（工具/技能/记忆三层 + 假设与回归记录）；既有 golden 12 条全回归 + 新增 g-13/g-14；工具冒烟 133 passed；CHANGELOG v1.0 记录影响面/假设/回归。
+- **计划中（D2）**：失败归因（T10）、评测/A-B 定稿（T11）、defense（T12）、干净环境复现 + 打包 + `d2`（T13）。**traces 四类（T7）与文档/`d1`（T8）已完成**。
 - **已知缺口（题面/数据造成，已声明）**：R8 汇率不可实现；R11 成本价字段不存在；R9 风险分自定；R10 等值边界 0 样本；R7 ≥20 万 0 样本；状态机仅 3/5 状态有样本。

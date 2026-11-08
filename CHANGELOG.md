@@ -1,6 +1,42 @@
 # CHANGELOG
 
-> 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见文末（自拟，非官方）。
+> 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见 v1.0（自拟，非官方）。
+
+## v1.0（D2）· 2026-11-08 · CR#1（自拟，非官方）
+
+> **性质声明**：线下没有官方 CR#1；本条是按 taskbook §3.4 要求自行设计的等价变更，**不是官方 CR#1**（依据：交接文档 §8「CR#1 与答辩」、`plan.md` §M9）。45 分钟窗口内落地，既有评测保持全通过并新增 2 条用例。
+
+### CR 内容与影响面（工具 / 技能 / 记忆三层）
+
+| 层 | 变更 | 落地位置 |
+|---|---|---|
+| 工具 | `order_lookup` 输出物流商 `logisticsProvider` / `logisticsProviderName` / `logisticsProviderSource` | `src/tools/order-lookup.ts`（`logisticsProviderFor()` 纯函数） |
+| 工具 | `advice_card` 的 R7 新增「金额 ≥ 100,000.00 需财务会签」档：`10–20 万 → 采购主管+财务会签`，`≥20 万` 仍 `总监+财务`；输出 `financeCountersign`，卡片/`ruleSummary`/自动风险同步 | `src/tools/advice-card.ts`（`approvalFor()` 纯函数） |
+| 技能 | 技能 A 步骤 1 取物流商、护栏补 10 万/20 万档与反例；技能 B 护栏补财务会签与反例 | `.dsh/skills/delay-small-standard/`、`stock-replenish/` |
+| 记忆 | 会话白名单保持 8 个：新增 `lastLogisticsProvider`（换出从未被任何工具写入的 `lastClauseNo`）；`advice_card` 的 `note` 增写 `approval=…;financeCountersign=…`，下一轮注入可直接复用 | `src/memory/store.ts`、`src/tools/{order-lookup,advice-card}.ts`、`memory/extract.md` |
+
+### 假设（按题面“按你理解的做，并在 CHANGELOG 记录假设”）
+
+1. **物流商无字段 → 派生**：数据包 `orders` 表没有物流商字段，且为只读、不新增列；因此按既有「物流单价」档位做确定性派生：`freight_rate ≥ 90` → 顺丰速运（SF-EXPRESS）/ `82 ≤ rate < 90` → 德邦物流（DEBANG）/ `rate < 82` → 安能物流（ANE），标 `derived_rule_CR1-v1`。真实数据 3 档分别为 26 / 79 / 15 单。派生值**不是库内事实**，render 与回答都要求声明来源口径；未来若 `orders` 新增 carrier 列，只需替换 `logisticsProviderFor()`，输出契约不变。
+2. **财务会签判定**：以工具权威复算金额 `qty × unit_price`（与 R7 同源）为准，`≥ 100,000.00` 触发（含临界值）；`≥20 万` 的 `总监+财务` 档已含财务会签，输出 `financeCountersign=true`；黑名单仍最高优先（一律人工，但金额 ≥10 万时同样标 `financeCountersign=true`）。
+3. **记忆字段上限**：题面表 5-1 规定会话记忆 ≤8 字段 → 不新增第 9 个字段，用物流商记忆换出无人写入的 `lastClauseNo`；用户记忆 5 字段不变。旧 `memory/store.json`（空 seed）无迁移成本。
+4. **不改执行链路**：CR 只改工具输出/规则校验/技能文本/记忆字段（design.md §12 声明的扩展点）；`index.ts`、`policy/tool-surface.ts`、`dev/build.sh`、数据、profile、依赖均未改。
+
+### 回归证据（2026-11-08）
+
+- `./dev/build.sh` ✅；`node dev/test-tools.mjs` → **133 passed / 0 failed**（CR#1 前 113 → 新增 20 条：物流商三档/非法值/render/provenance、R7 `100,000.00` 临界与 20 万/5 万档不回归、0134 财务会签卡、记忆白名单与注入）。
+- `bash eval/run.sh` → 14 条全部运行成功；`node eval/collect.mjs --gate` → **golden 14/14 PASS**，六指标全绿（准确率 100% / 引用可溯 100% / 记忆 100% / 技能 100% / 提效 67.5% / 越权 100%），退出码 **0**。
+- 既有 12 条逐条保持通过（CR 未改变 <10 万、≥20 万、黑名单档输出）：0042 57,600.00 → 采购主管、0055 恰好 50,000.00 → 采购主管、0129 黑名单 → 人工复核等。
+- 新增用例（category=`cr`）：
+  - `g-13` 物流商：0042 → 德邦物流（DEBANG，来源 `derived_rule_CR1-v1:82<=freight_rate<90`），卡片与回答均给出来源口径；
+  - `g-14` 财务会签：0134 → 权威金额 126,000.00 → `采购主管+财务会签`、`financeCountersign=true`、`needHuman=true`。
+- 报告/证据：`eval/report.md`（golden set v2 · CR#1 后 14 条）、`eval/summary.json`、`runs/eval/{g-13,g-14}/`（事件流 + 审计）。
+
+### 口径与风险
+
+- 物流商为**演示口径派生值**，不冒充库内事实；答辩口径：“数据包无该字段，规则写死可复算，未来可替换为真实字段”。
+- 财务会签档 `100,000.00–199,999.99` 真实数据只有 1 单（`PO-20260920-0134` = 126,000.00），另用纯函数测 `99999.99 / 100000.00 / 199999.99 / 200000.00` 边界；档位只看金额，不引入汇率/币种（与 R8 声明一致）。
+- 历史 `traces/`（D1 落盘）是 CR 前行为记录，未回填；`d1` tag 作为 CR 前对照基线。
 
 ### v0.9（D1）· 2026-11-07 · D1 收工
 
@@ -223,4 +259,4 @@ golden set 12/12；node eval/collect.mjs --gate → 退出码 0
 
 ## 待记录（后续 todo 逐项追加）
 
-- T2 `advice_card`、T3 记忆工具与注入、T4 技能 A/B + `skill_write`、T5 评测/门禁、T6 专项集/A-B、T7 traces、T8 文档、T9 CR#1、T10 失败归因。
+- T2 `advice_card`、T3 记忆工具与注入、T4 技能 A/B + `skill_write`、T5 评测/门禁、T6 专项集/A-B、T7 traces、T8 文档已在 v0.2–v0.9 记录；**T9 CR#1 见 v1.0**；T10 失败归因待续。

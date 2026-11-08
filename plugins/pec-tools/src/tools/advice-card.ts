@@ -13,7 +13,9 @@ import { rememberSession } from '../memory/store.js'
  * 设计原则（答辩口径）：
  *  - 模型不能绕过规则：金额由工具按订单 qty × unit_price 权威复算，模型传入的 amount 只用于核对；
  *  - evidence 每条 ref 必须真实存在，且条款必须属于该订单供应商（防止引用不存在/别家条款的幻觉）；
- *  - R7 四档审批与黑名单由工具强制写死，模型只能“升级”不能“降级” needHuman；
+ *  - R7 审批档位与黑名单由工具强制写死，模型只能“升级”不能“降级” needHuman；
+ *  - CR#1（自拟，非官方）：R7 增加「金额 ≥ 100,000.00 需财务会签」一档（同时与 ≥20 万总监+财务叠加），
+ *    输出 financeCountersign 字段，render/ruleSummary/记忆 note 同步；
  *  - reschedule 的 newDate 由工具确定性重算（实际交期 + 14 天，题面 §6.1 样例技能口径），忽略模型传值，
  *    这样 A/B 两组的结论五元组才能逐位一致；
  *  - 只产出建议卡，不做任何写操作（题面 §1.4）。
@@ -24,6 +26,8 @@ export const ADVICE_ACTIONS = ['reschedule', 'switch_source', 'split', 'replenis
 export const R7_THRESHOLDS = {
   /** < 5 万自动 */
   manager: toFixed('50000'),
+  /** CR#1：≥ 10 万需财务会签 */
+  finance: toFixed('100000'),
   /** ≥ 20 万总监 + 财务 */
   director: toFixed('200000'),
 } as const
@@ -31,28 +35,51 @@ export const R7_THRESHOLDS = {
 export interface ApprovalDecision {
   approvalPath: string
   needHuman: boolean
+  /** CR#1：金额是否触发 ≥100,000.00 的财务会签（独立于审批路径，便于下游/审计直接取用） */
+  financeCountersign: boolean
   ruleHits: string[]
 }
 
 /**
  * R7 审批建议（纯函数，边界可单测）：
  *  - 黑名单一律人工（优先级最高）；
- *  - [50,000.00, 200,000.00) → 采购主管；
- *  - ≥ 200,000.00 → 总监+财务；
+ *  - ≥ 200,000.00 → 总监+财务（财务会签含在内）；
+ *  - [100,000.00, 200,000.00) → 采购主管 + 财务会签（CR#1 新增档）；
+ *  - [50,000.00, 100,000.00) → 采购主管；
  *  - < 50,000.00 → 自动（无需人工审批）。
- * 临界 50,000.00 走主管（不是自动）。
+ * 临界 50,000.00 走主管（不是自动）；临界 100,000.00 起需财务会签。
  */
 export function approvalFor(amount: Fixed, blacklisted: boolean): ApprovalDecision {
+  const financeCountersign = amount >= R7_THRESHOLDS.finance
+  const financeHit = financeCountersign ? ['CR1:GE_100000_FINANCE'] : []
   if (blacklisted) {
-    return { approvalPath: '人工复核（黑名单供应商）', needHuman: true, ruleHits: ['R7:blacklist'] }
+    return {
+      approvalPath: '人工复核（黑名单供应商）',
+      needHuman: true,
+      financeCountersign,
+      ruleHits: ['R7:blacklist', ...financeHit],
+    }
   }
   if (amount >= R7_THRESHOLDS.director) {
-    return { approvalPath: '总监+财务', needHuman: true, ruleHits: ['R7:GE_200000'] }
+    return {
+      approvalPath: '总监+财务',
+      needHuman: true,
+      financeCountersign: true,
+      ruleHits: ['R7:GE_200000', 'CR1:GE_100000_FINANCE'],
+    }
+  }
+  if (financeCountersign) {
+    return {
+      approvalPath: '采购主管+财务会签',
+      needHuman: true,
+      financeCountersign: true,
+      ruleHits: ['R7:GE_50000', 'CR1:GE_100000_FINANCE'],
+    }
   }
   if (amount >= R7_THRESHOLDS.manager) {
-    return { approvalPath: '采购主管', needHuman: true, ruleHits: ['R7:GE_50000'] }
+    return { approvalPath: '采购主管', needHuman: true, financeCountersign: false, ruleHits: ['R7:GE_50000'] }
   }
-  return { approvalPath: '自动（无需人工审批）', needHuman: false, ruleHits: ['R7:AUTO_LT_50000'] }
+  return { approvalPath: '自动（无需人工审批）', needHuman: false, financeCountersign: false, ruleHits: ['R7:AUTO_LT_50000'] }
 }
 
 /** ISO 日期 + N 天（UTC，避免本地时区偏移）。 */
@@ -170,7 +197,7 @@ function dedupeRisks(risks: string[]): string[] {
 export const adviceCard = defineTool({
   name: 'advice_card',
   description:
-    '生成采购异常处置建议卡（只读、建议不执行）：动作、参数、金额、证据、风险、审批路径、置信度与是否需人工确认。工具会权威复算金额、校验 R7 审批阈值（<5 万自动 / 5–20 万采购主管 / ≥20 万总监+财务 / 黑名单一律人工）与每条 evidence 是否真实存在，模型不能绕过。适用：一次处置取证完成后输出最终建议时；不适用：查事实（order_lookup）、查历史（ticket_similar）、检索条款（contract_search）。',
+    '生成采购异常处置建议卡（只读、建议不执行）：动作、参数、金额、证据、风险、审批路径、置信度与是否需人工确认。工具会权威复算金额、校验 R7 审批阈值（<5 万自动 / 5–10 万采购主管 / 10–20 万采购主管+财务会签 / ≥20 万总监+财务 / 黑名单一律人工，财务会签为 CR#1 新增）与每条 evidence 是否真实存在，模型不能绕过。适用：一次处置取证完成后输出最终建议时；不适用：查事实（order_lookup）、查历史（ticket_similar）、检索条款（contract_search）。',
   parameters: {
     action: {
       type: 'string',
@@ -209,11 +236,16 @@ export const adviceCard = defineTool({
       )
       lines.push(`- 金额：${formatMoney(toFixed(c.amount))}（订单权威复算：${c.order.qty} × ${c.order.unitPrice}）`)
       lines.push(`- 审批路径：${c.approvalPath}（规则命中 ${c.ruleHits.join(' / ')}）`)
+      lines.push(
+        c.financeCountersign
+          ? `- 财务会签：需（金额 ≥ 100,000.00，CR#1 阈值；本单 ${formatMoney(toFixed(c.amount))}）`
+          : `- 财务会签：不需要（金额 < 100,000.00，CR#1 阈值）`,
+      )
       if (c.risks.length) lines.push(`- 风险：${c.risks.join('；')}`)
       lines.push(`- 置信度：${c.confidence}`)
       lines.push(`- 证据：${c.evidence.map((e: any) => (e.type === 'clause' ? `条款 ${e.ref}` : e.ref)).join('、')}`)
       lines.push(
-        '口径：R7 阈值 50,000.00 / 200,000.00（≥20 万总监+财务，黑名单一律人工）；本卡只产出建议，不执行任何写操作，用户确认或修改后才进入标注集。',
+        '口径：R7 阈值 50,000.00 / 100,000.00 / 200,000.00（≥10 万需财务会签、≥20 万总监+财务，黑名单一律人工；财务会签为 CR#1 新增）；本卡只产出建议，不执行任何写操作，用户确认或修改后才进入标注集。',
       )
       return renderLines(lines, v.provenance)
     },
@@ -301,7 +333,8 @@ export const adviceCard = defineTool({
     if (supplier.blacklisted) autoRisks.push(`供应商为黑名单（${supplier.risk_level} 级）`)
     else if (supplier.risk_level === 'D') autoRisks.push('供应商风险等级 D')
     if (supplier.delay_days_12m > 0) autoRisks.push(`近 12 月累计延迟 ${supplier.delay_days_12m} 天`)
-    if (amountFixed >= R7_THRESHOLDS.director) autoRisks.push(`金额超过 20 万阈值（${amountStr}）`)
+    if (amountFixed >= R7_THRESHOLDS.director) autoRisks.push(`金额超过 20 万阈值（${amountStr}），需总监+财务审批`)
+    else if (amountFixed >= R7_THRESHOLDS.finance) autoRisks.push(`金额超过 10 万阈值（${amountStr}），需财务会签（CR#1）`)
     else if (amountFixed >= R7_THRESHOLDS.manager) autoRisks.push(`金额超过 5 万阈值（${amountStr}）`)
     else autoRisks.push(`金额低于 5 万阈值（${amountStr}），可按自动流程处理`)
     const risks = dedupeRisks([...(Array.isArray(a.risks) ? a.risks.map((x: unknown) => String(x)) : []), ...autoRisks])
@@ -309,11 +342,17 @@ export const adviceCard = defineTool({
     const needHuman = decision.needHuman || a.needHuman === true
 
     // 会话记忆：当前动作/订单，供下一轮注入（R13）
+    // CR#1：记忆层的抽取内容同步扩展——下一轮可直接复用审批路径与财务会签结论，不必重复出卡
+    const noteParts = [
+      ...(newDate ? [`newDate=${newDate}`] : []),
+      `approval=${decision.approvalPath}`,
+      `financeCountersign=${decision.financeCountersign ? 'yes' : 'no'}`,
+    ]
     rememberSession(identity, sessionId, {
       lastOrderId: order.id,
       lastSupplierId: supplier.id,
       currentAction: action,
-      ...(newDate ? { note: `newDate=${newDate}` } : {}),
+      note: noteParts.join(';'),
     })
 
     const card = {
@@ -325,6 +364,7 @@ export const adviceCard = defineTool({
       confidence,
       needHuman,
       approvalPath: decision.approvalPath,
+      financeCountersign: decision.financeCountersign,
       ruleHits: decision.ruleHits,
       ...(newDate ? { newDate } : {}),
       ...(newDateSource ? { newDateSource } : {}),
@@ -349,7 +389,7 @@ export const adviceCard = defineTool({
     return {
       data: {
         card,
-        ruleSummary: `R7：<50000.00 自动；50000.00–199999.99 采购主管；≥200000.00 总监+财务；黑名单一律人工（本单 ${amountStr} → ${decision.approvalPath}）`,
+        ruleSummary: `R7：<50000.00 自动；50000.00–99999.99 采购主管；100000.00–199999.99 采购主管+财务会签（CR#1）；≥200000.00 总监+财务；黑名单一律人工（本单 ${amountStr} → ${decision.approvalPath}，财务会签=${decision.financeCountersign ? '需' : '不需要'}）`,
       },
       provenance: [...new Map(provenance.map((ref) => [`${ref.table}#${ref.rowId}`, ref])).values()],
     }

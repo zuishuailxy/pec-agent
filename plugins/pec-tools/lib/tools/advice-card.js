@@ -10,20 +10,42 @@ const ADVICE_ACTIONS = ["reschedule", "switch_source", "split", "replenish", "au
 const R7_THRESHOLDS = {
   /** < 5 万自动 */
   manager: toFixed("50000"),
+  /** CR#1：≥ 10 万需财务会签 */
+  finance: toFixed("100000"),
   /** ≥ 20 万总监 + 财务 */
   director: toFixed("200000")
 };
 function approvalFor(amount, blacklisted) {
+  const financeCountersign = amount >= R7_THRESHOLDS.finance;
+  const financeHit = financeCountersign ? ["CR1:GE_100000_FINANCE"] : [];
   if (blacklisted) {
-    return { approvalPath: "\u4EBA\u5DE5\u590D\u6838\uFF08\u9ED1\u540D\u5355\u4F9B\u5E94\u5546\uFF09", needHuman: true, ruleHits: ["R7:blacklist"] };
+    return {
+      approvalPath: "\u4EBA\u5DE5\u590D\u6838\uFF08\u9ED1\u540D\u5355\u4F9B\u5E94\u5546\uFF09",
+      needHuman: true,
+      financeCountersign,
+      ruleHits: ["R7:blacklist", ...financeHit]
+    };
   }
   if (amount >= R7_THRESHOLDS.director) {
-    return { approvalPath: "\u603B\u76D1+\u8D22\u52A1", needHuman: true, ruleHits: ["R7:GE_200000"] };
+    return {
+      approvalPath: "\u603B\u76D1+\u8D22\u52A1",
+      needHuman: true,
+      financeCountersign: true,
+      ruleHits: ["R7:GE_200000", "CR1:GE_100000_FINANCE"]
+    };
+  }
+  if (financeCountersign) {
+    return {
+      approvalPath: "\u91C7\u8D2D\u4E3B\u7BA1+\u8D22\u52A1\u4F1A\u7B7E",
+      needHuman: true,
+      financeCountersign: true,
+      ruleHits: ["R7:GE_50000", "CR1:GE_100000_FINANCE"]
+    };
   }
   if (amount >= R7_THRESHOLDS.manager) {
-    return { approvalPath: "\u91C7\u8D2D\u4E3B\u7BA1", needHuman: true, ruleHits: ["R7:GE_50000"] };
+    return { approvalPath: "\u91C7\u8D2D\u4E3B\u7BA1", needHuman: true, financeCountersign: false, ruleHits: ["R7:GE_50000"] };
   }
-  return { approvalPath: "\u81EA\u52A8\uFF08\u65E0\u9700\u4EBA\u5DE5\u5BA1\u6279\uFF09", needHuman: false, ruleHits: ["R7:AUTO_LT_50000"] };
+  return { approvalPath: "\u81EA\u52A8\uFF08\u65E0\u9700\u4EBA\u5DE5\u5BA1\u6279\uFF09", needHuman: false, financeCountersign: false, ruleHits: ["R7:AUTO_LT_50000"] };
 }
 function addDays(isoDate, days) {
   const base = Date.parse(`${isoDate}T00:00:00Z`);
@@ -94,7 +116,7 @@ function dedupeRisks(risks) {
 }
 const adviceCard = defineTool({
   name: "advice_card",
-  description: "\u751F\u6210\u91C7\u8D2D\u5F02\u5E38\u5904\u7F6E\u5EFA\u8BAE\u5361\uFF08\u53EA\u8BFB\u3001\u5EFA\u8BAE\u4E0D\u6267\u884C\uFF09\uFF1A\u52A8\u4F5C\u3001\u53C2\u6570\u3001\u91D1\u989D\u3001\u8BC1\u636E\u3001\u98CE\u9669\u3001\u5BA1\u6279\u8DEF\u5F84\u3001\u7F6E\u4FE1\u5EA6\u4E0E\u662F\u5426\u9700\u4EBA\u5DE5\u786E\u8BA4\u3002\u5DE5\u5177\u4F1A\u6743\u5A01\u590D\u7B97\u91D1\u989D\u3001\u6821\u9A8C R7 \u5BA1\u6279\u9608\u503C\uFF08<5 \u4E07\u81EA\u52A8 / 5\u201320 \u4E07\u91C7\u8D2D\u4E3B\u7BA1 / \u226520 \u4E07\u603B\u76D1+\u8D22\u52A1 / \u9ED1\u540D\u5355\u4E00\u5F8B\u4EBA\u5DE5\uFF09\u4E0E\u6BCF\u6761 evidence \u662F\u5426\u771F\u5B9E\u5B58\u5728\uFF0C\u6A21\u578B\u4E0D\u80FD\u7ED5\u8FC7\u3002\u9002\u7528\uFF1A\u4E00\u6B21\u5904\u7F6E\u53D6\u8BC1\u5B8C\u6210\u540E\u8F93\u51FA\u6700\u7EC8\u5EFA\u8BAE\u65F6\uFF1B\u4E0D\u9002\u7528\uFF1A\u67E5\u4E8B\u5B9E\uFF08order_lookup\uFF09\u3001\u67E5\u5386\u53F2\uFF08ticket_similar\uFF09\u3001\u68C0\u7D22\u6761\u6B3E\uFF08contract_search\uFF09\u3002",
+  description: "\u751F\u6210\u91C7\u8D2D\u5F02\u5E38\u5904\u7F6E\u5EFA\u8BAE\u5361\uFF08\u53EA\u8BFB\u3001\u5EFA\u8BAE\u4E0D\u6267\u884C\uFF09\uFF1A\u52A8\u4F5C\u3001\u53C2\u6570\u3001\u91D1\u989D\u3001\u8BC1\u636E\u3001\u98CE\u9669\u3001\u5BA1\u6279\u8DEF\u5F84\u3001\u7F6E\u4FE1\u5EA6\u4E0E\u662F\u5426\u9700\u4EBA\u5DE5\u786E\u8BA4\u3002\u5DE5\u5177\u4F1A\u6743\u5A01\u590D\u7B97\u91D1\u989D\u3001\u6821\u9A8C R7 \u5BA1\u6279\u9608\u503C\uFF08<5 \u4E07\u81EA\u52A8 / 5\u201310 \u4E07\u91C7\u8D2D\u4E3B\u7BA1 / 10\u201320 \u4E07\u91C7\u8D2D\u4E3B\u7BA1+\u8D22\u52A1\u4F1A\u7B7E / \u226520 \u4E07\u603B\u76D1+\u8D22\u52A1 / \u9ED1\u540D\u5355\u4E00\u5F8B\u4EBA\u5DE5\uFF0C\u8D22\u52A1\u4F1A\u7B7E\u4E3A CR#1 \u65B0\u589E\uFF09\u4E0E\u6BCF\u6761 evidence \u662F\u5426\u771F\u5B9E\u5B58\u5728\uFF0C\u6A21\u578B\u4E0D\u80FD\u7ED5\u8FC7\u3002\u9002\u7528\uFF1A\u4E00\u6B21\u5904\u7F6E\u53D6\u8BC1\u5B8C\u6210\u540E\u8F93\u51FA\u6700\u7EC8\u5EFA\u8BAE\u65F6\uFF1B\u4E0D\u9002\u7528\uFF1A\u67E5\u4E8B\u5B9E\uFF08order_lookup\uFF09\u3001\u67E5\u5386\u53F2\uFF08ticket_similar\uFF09\u3001\u68C0\u7D22\u6761\u6B3E\uFF08contract_search\uFF09\u3002",
   parameters: {
     action: {
       type: "string",
@@ -133,11 +155,14 @@ const adviceCard = defineTool({
       );
       lines.push(`- \u91D1\u989D\uFF1A${formatMoney(toFixed(c.amount))}\uFF08\u8BA2\u5355\u6743\u5A01\u590D\u7B97\uFF1A${c.order.qty} \xD7 ${c.order.unitPrice}\uFF09`);
       lines.push(`- \u5BA1\u6279\u8DEF\u5F84\uFF1A${c.approvalPath}\uFF08\u89C4\u5219\u547D\u4E2D ${c.ruleHits.join(" / ")}\uFF09`);
+      lines.push(
+        c.financeCountersign ? `- \u8D22\u52A1\u4F1A\u7B7E\uFF1A\u9700\uFF08\u91D1\u989D \u2265 100,000.00\uFF0CCR#1 \u9608\u503C\uFF1B\u672C\u5355 ${formatMoney(toFixed(c.amount))}\uFF09` : `- \u8D22\u52A1\u4F1A\u7B7E\uFF1A\u4E0D\u9700\u8981\uFF08\u91D1\u989D < 100,000.00\uFF0CCR#1 \u9608\u503C\uFF09`
+      );
       if (c.risks.length) lines.push(`- \u98CE\u9669\uFF1A${c.risks.join("\uFF1B")}`);
       lines.push(`- \u7F6E\u4FE1\u5EA6\uFF1A${c.confidence}`);
       lines.push(`- \u8BC1\u636E\uFF1A${c.evidence.map((e) => e.type === "clause" ? `\u6761\u6B3E ${e.ref}` : e.ref).join("\u3001")}`);
       lines.push(
-        "\u53E3\u5F84\uFF1AR7 \u9608\u503C 50,000.00 / 200,000.00\uFF08\u226520 \u4E07\u603B\u76D1+\u8D22\u52A1\uFF0C\u9ED1\u540D\u5355\u4E00\u5F8B\u4EBA\u5DE5\uFF09\uFF1B\u672C\u5361\u53EA\u4EA7\u51FA\u5EFA\u8BAE\uFF0C\u4E0D\u6267\u884C\u4EFB\u4F55\u5199\u64CD\u4F5C\uFF0C\u7528\u6237\u786E\u8BA4\u6216\u4FEE\u6539\u540E\u624D\u8FDB\u5165\u6807\u6CE8\u96C6\u3002"
+        "\u53E3\u5F84\uFF1AR7 \u9608\u503C 50,000.00 / 100,000.00 / 200,000.00\uFF08\u226510 \u4E07\u9700\u8D22\u52A1\u4F1A\u7B7E\u3001\u226520 \u4E07\u603B\u76D1+\u8D22\u52A1\uFF0C\u9ED1\u540D\u5355\u4E00\u5F8B\u4EBA\u5DE5\uFF1B\u8D22\u52A1\u4F1A\u7B7E\u4E3A CR#1 \u65B0\u589E\uFF09\uFF1B\u672C\u5361\u53EA\u4EA7\u51FA\u5EFA\u8BAE\uFF0C\u4E0D\u6267\u884C\u4EFB\u4F55\u5199\u64CD\u4F5C\uFF0C\u7528\u6237\u786E\u8BA4\u6216\u4FEE\u6539\u540E\u624D\u8FDB\u5165\u6807\u6CE8\u96C6\u3002"
       );
       return renderLines(lines, v.provenance);
     }
@@ -211,16 +236,22 @@ const adviceCard = defineTool({
     if (supplier.blacklisted) autoRisks.push(`\u4F9B\u5E94\u5546\u4E3A\u9ED1\u540D\u5355\uFF08${supplier.risk_level} \u7EA7\uFF09`);
     else if (supplier.risk_level === "D") autoRisks.push("\u4F9B\u5E94\u5546\u98CE\u9669\u7B49\u7EA7 D");
     if (supplier.delay_days_12m > 0) autoRisks.push(`\u8FD1 12 \u6708\u7D2F\u8BA1\u5EF6\u8FDF ${supplier.delay_days_12m} \u5929`);
-    if (amountFixed >= R7_THRESHOLDS.director) autoRisks.push(`\u91D1\u989D\u8D85\u8FC7 20 \u4E07\u9608\u503C\uFF08${amountStr}\uFF09`);
+    if (amountFixed >= R7_THRESHOLDS.director) autoRisks.push(`\u91D1\u989D\u8D85\u8FC7 20 \u4E07\u9608\u503C\uFF08${amountStr}\uFF09\uFF0C\u9700\u603B\u76D1+\u8D22\u52A1\u5BA1\u6279`);
+    else if (amountFixed >= R7_THRESHOLDS.finance) autoRisks.push(`\u91D1\u989D\u8D85\u8FC7 10 \u4E07\u9608\u503C\uFF08${amountStr}\uFF09\uFF0C\u9700\u8D22\u52A1\u4F1A\u7B7E\uFF08CR#1\uFF09`);
     else if (amountFixed >= R7_THRESHOLDS.manager) autoRisks.push(`\u91D1\u989D\u8D85\u8FC7 5 \u4E07\u9608\u503C\uFF08${amountStr}\uFF09`);
     else autoRisks.push(`\u91D1\u989D\u4F4E\u4E8E 5 \u4E07\u9608\u503C\uFF08${amountStr}\uFF09\uFF0C\u53EF\u6309\u81EA\u52A8\u6D41\u7A0B\u5904\u7406`);
     const risks = dedupeRisks([...Array.isArray(a.risks) ? a.risks.map((x) => String(x)) : [], ...autoRisks]);
     const needHuman = decision.needHuman || a.needHuman === true;
+    const noteParts = [
+      ...newDate ? [`newDate=${newDate}`] : [],
+      `approval=${decision.approvalPath}`,
+      `financeCountersign=${decision.financeCountersign ? "yes" : "no"}`
+    ];
     rememberSession(identity, sessionId, {
       lastOrderId: order.id,
       lastSupplierId: supplier.id,
       currentAction: action,
-      ...newDate ? { note: `newDate=${newDate}` } : {}
+      note: noteParts.join(";")
     });
     const card = {
       action,
@@ -231,6 +262,7 @@ const adviceCard = defineTool({
       confidence,
       needHuman,
       approvalPath: decision.approvalPath,
+      financeCountersign: decision.financeCountersign,
       ruleHits: decision.ruleHits,
       ...newDate ? { newDate } : {},
       ...newDateSource ? { newDateSource } : {},
@@ -254,7 +286,7 @@ const adviceCard = defineTool({
     return {
       data: {
         card,
-        ruleSummary: `R7\uFF1A<50000.00 \u81EA\u52A8\uFF1B50000.00\u2013199999.99 \u91C7\u8D2D\u4E3B\u7BA1\uFF1B\u2265200000.00 \u603B\u76D1+\u8D22\u52A1\uFF1B\u9ED1\u540D\u5355\u4E00\u5F8B\u4EBA\u5DE5\uFF08\u672C\u5355 ${amountStr} \u2192 ${decision.approvalPath}\uFF09`
+        ruleSummary: `R7\uFF1A<50000.00 \u81EA\u52A8\uFF1B50000.00\u201399999.99 \u91C7\u8D2D\u4E3B\u7BA1\uFF1B100000.00\u2013199999.99 \u91C7\u8D2D\u4E3B\u7BA1+\u8D22\u52A1\u4F1A\u7B7E\uFF08CR#1\uFF09\uFF1B\u2265200000.00 \u603B\u76D1+\u8D22\u52A1\uFF1B\u9ED1\u540D\u5355\u4E00\u5F8B\u4EBA\u5DE5\uFF08\u672C\u5355 ${amountStr} \u2192 ${decision.approvalPath}\uFF0C\u8D22\u52A1\u4F1A\u7B7E=${decision.financeCountersign ? "\u9700" : "\u4E0D\u9700\u8981"}\uFF09`
       },
       provenance: [...new Map(provenance.map((ref) => [`${ref.table}#${ref.rowId}`, ref])).values()]
     };

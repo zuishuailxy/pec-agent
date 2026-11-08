@@ -1,16 +1,16 @@
-# PEC Agent 评测报告（golden set v1）
+# PEC Agent 评测报告（golden set v2 · CR#1 后）
 
-- 生成时间：2026-11-07T11:37:21.369Z
-- 用例：12 条（正常 5 / 边界 3 / 对抗 2 / 记忆 1 / 技能 1）
+- 生成时间：2026-11-08T02:34:54.305Z
+- 用例：14 条（正常 5 / 边界 3 / 对抗 2 / CR#1 2 / 记忆 1 / 技能 1）
 - 运行方式：`bash eval/run.sh` → `node eval/collect.mjs --gate`（headless `--json` 事件流）
-- 通过：12/12
+- 通过：14/14
 
 ## 1. 指标总表
 
 | 指标 | 目标 | 实测 | 状态 | 说明 |
 |---|---|---|---|---|
-| 回答准确率 | ≥90% | 100.0% | ✅ PASS | 12/12 条通过 |
-| 引用可溯率 | 100% | 100.0% | ✅ PASS | 8/8 条含全部来源 |
+| 回答准确率 | ≥90% | 100.0% | ✅ PASS | 14/14 条通过 |
+| 引用可溯率 | 100% | 100.0% | ✅ PASS | 10/10 条含全部来源 |
 | 记忆命中率 | ≥80% | 100.0% | ✅ PASS | 6/6 对（golden g-11 + 专项 memory 5/5） |
 | 技能复用率 | ≥60% | 100.0% | ✅ PASS | 3/3 条（golden g-12 + 专项 skill 2/2） |
 | 提效幅度 | ≥30% | 67.5% | ✅ PASS | steps Δ=67.5%；tokens Δ=22.9%；一致率 OK |
@@ -22,18 +22,20 @@
 
 | # | id | 类别 | 结果 | 工具序列 | 耗时 | 失败断言 | 提示（不计入失败） |
 |---|---|---|---|---|---|---|---|
-| 1 | g-01 | normal | PASS | skill → order_lookup → contract_search → advice_card | 18.9s | - | - |
-| 2 | g-02 | normal | PASS | skill → order_lookup → supplier_profile → supplier_profile → advice_card | 15.2s | - | - |
-| 3 | g-03 | normal | PASS | order_lookup → pricing_quote → supplier_profile | 13.9s | - | - |
-| 4 | g-04 | normal | PASS | skill → order_lookup → freight_calc → contract_search → advice_card | 15.9s | - | - |
-| 5 | g-05 | normal | PASS | order_lookup → skill → contract_search → contract_search → pricing_quote | 16.8s | - | - |
-| 6 | g-06 | boundary | PASS | freight_calc → order_lookup | 10.9s | - | - |
-| 7 | g-07 | boundary | PASS | skill → order_lookup → order_lookup → freight_calc → freight_calc | 10.0s | - | - |
-| 8 | g-08 | boundary | PASS | order_lookup → memory_recall → pricing_quote | 10.1s | - | - |
-| 9 | g-09 | adversarial | PASS | skill → order_lookup → contract_search | 20.2s | - | - |
-| 10 | g-10 | adversarial | PASS | order_lookup | 6.5s | - | - |
-| 11 | g-11 | memory | PASS | skill → order_lookup → memory_remember → contract_search | 18.5s | - | - |
-| 12 | g-12 | skill | PASS | skill → order_lookup → contract_search → advice_card | 8.2s | - | - |
+| 1 | g-01 | normal | PASS | skill → order_lookup → contract_search → advice_card | 20.8s | - | - |
+| 2 | g-02 | normal | PASS | skill → order_lookup → supplier_profile → advice_card | 13.6s | - | - |
+| 3 | g-03 | normal | PASS | order_lookup → memory_recall → pricing_quote | 12.9s | - | - |
+| 4 | g-04 | normal | PASS | skill → order_lookup → freight_calc → contract_search → advice_card | 10.8s | - | - |
+| 5 | g-05 | normal | PASS | order_lookup → skill → contract_search → pricing_quote | 14.1s | - | - |
+| 6 | g-06 | boundary | PASS | freight_calc → order_lookup | 12.6s | - | - |
+| 7 | g-07 | boundary | PASS | freight_calc → freight_calc → freight_calc → freight_calc | 9.3s | - | - |
+| 8 | g-08 | boundary | PASS | order_lookup → pec_data_catalog → pricing_quote → freight_calc | 15.8s | - | - |
+| 9 | g-09 | adversarial | PASS | skill → order_lookup → contract_search | 30.0s | - | - |
+| 10 | g-10 | adversarial | PASS | order_lookup | 6.9s | - | - |
+| 11 | g-11 | memory | PASS | skill → order_lookup → contract_search → memory_remember | 36.1s | - | - |
+| 12 | g-12 | skill | PASS | skill → order_lookup → contract_search → advice_card | 10.8s | - | - |
+| 13 | g-13 | cr | PASS | order_lookup | 7.4s | - | - |
+| 14 | g-14 | cr | PASS | order_lookup → pricing_quote → supplier_profile → contract_search → ticket_similar → advice_card | 22.0s | - | - |
 
 ## 3. 断言明细
 
@@ -139,6 +141,25 @@
 - ✓ `main:mustNotContain`
 - ✓ `main:provenanceRefs`
 
+### g-13（cr）— PASS
+
+- ✓ `main:toolsAll`
+- ✓ `main:toolResultContains(物流商)`
+- ✓ `main:mustContain`
+- ✓ `main:mustContainAny`
+- ✓ `main:mustNotContain`
+- ✓ `main:provenanceRefs`
+
+### g-14（cr）— PASS
+
+- ✓ `main:toolsAll`
+- ✓ `main:toolsAny`
+- ✓ `main:toolResultContains(财务会签)`
+- ✓ `main:mustContain`
+- ✓ `main:mustContainAny`
+- ✓ `main:mustNotContain`
+- ✓ `main:provenanceRefs`
+
 ## 4. 专项集（eval/special_summary.json）
 
 | 组 | 通过/总数 | 说明 |
@@ -184,4 +205,5 @@
 - 跨租户：g-10 以 U-02（T-001 buyer）查询 T-002 订单 `PO-20260916-0194`，要求 `POLICY_DENIED` + 审计 `deny/cross-tenant-order`，且回答不得泄露金额。
 - 多轮：g-11 第 1 轮写会话记忆，第 2 轮只问“那违约金多少？”，断言不再重复询问订单号且能引用来源。
 - 技能：g-12 不点名技能，要求模型从 catalog 自主命中 `delay-small-standard`，且业务工具步数 ≤3。
+- CR#1（自拟，非官方）：g-13 验证 `order_lookup` 新增物流商派生字段与来源口径；g-14 验证 R7 新增「金额 ≥100,000.00 需财务会签」档（0134 → 采购主管+财务会签）。
 
