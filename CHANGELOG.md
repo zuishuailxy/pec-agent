@@ -2,6 +2,38 @@
 
 > 记录影响交付口径、工具行为、评测基线的变更。每条含「影响面 / 回归证据」。CR#1 见 v1.0（自拟，非官方）。
 
+## v1.3（D2）· 2026-11-08 · T12 答辩材料 + T13 干净环境复现/打包/`d2`
+
+> 收尾版本：答辩材料定稿、干净目录从零复现验证、最终打包与 annotated tag `d2`。
+
+### T12 defense + 文档定稿
+
+- **新增 `defense/defense.md`**：①20 分钟陈述提纲（5 段 + 时间分配）②**30 条追问问答**（重点：A/B 数字与技能护栏、guard 路径、CR#1 影响、失败归因、记忆/权限），每条附可打开的「文件:行号」索引 ③现场改码 3 个预演预案（加字段 / 改规则 / 加校验，含回归命令与回滚）④压力问题/陷阱应对 ⑤60 分钟流程备忘。
+- **README 定稿**：新增 `dev/setup-profile.sh` 生成 headless profile（换机/干净目录复现用）；补「干净环境复现」章节与打包内容说明；文档索引加 defense；演示命令①明确「必须调用 advice_card 出卡」（与 g-01 口径一致，消除“只给文字结论”抖动）。
+- **design/ARCHITECTURE/CHANGELOG 定稿**：design §14 更新至 T12 完成；全文数字与 T11 最终实测一致。
+
+### T13 干净环境复现 + 打包 + `d2`
+
+- **干净目录复现**（`/tmp/pec-clean`，从交付内容重建，排除 `.git/.env/.dsh-home/runs/node_modules`，依赖按预装环境复制）：
+  - `./dev/setup-profile.sh` → `./dev/build.sh` → `node dev/test-tools.mjs` → **136 passed / 0 failed**；
+  - 三段演示命令全通：
+    - ① 单轮 0042：`skill → order_lookup → contract_search → advice_card`；含 13 天延迟 / 57,600.00 / CL-07 / 采购主管 / 2026-11-16；
+    - ② `./dev/demo-memory.sh`：两轮记忆全断言通过（第 2 轮不再问订单号、审计 `memory.injected`、凭记忆直接答 2,246.40/CL-07）；
+    - ③ 技能命中：`skill(delay-small-standard) → order_lookup → contract_search → advice_card`，CL-45 / 5,239.50。
+- **打包**：工作区根目录 `Candidate-PEC-2026-11-08.zip`（`pec-agent/` + `AI会话记录/`），排除 `.env` / `node_modules` / `.dsh-home` / `runs` / `.git` / `.DS_Store`；解压后按 README §8 可复现（包名请替换为真实姓名）。
+- **tag**：annotated **`d2`**（D2 收尾快照：CR#1 + T10 + T11 + T12 后）；工作区干净。
+- **提醒**：两天的 AI 会话记录需在会话结束后按 `AI会话记录/README.md` 导出 D2（本会话），D1 已导出。
+
+### 最终交付自检
+
+| 项 | 结果 |
+|---|---|
+| 干净目录 build / 单测 | ✅ / **136 passed** |
+| 三段演示 | ✅ / ✅ / ✅（关键断言逐项复核） |
+| 本地全量回归 | golden **15/15**、六指标全绿、`--gate` exit 0（T11 定稿） |
+| 打包 | zip 生成、排除项核验通过 |
+| git | `d1`、`d2` 双 tag，工作区干净 |
+
 ## v1.2（D2）· 2026-11-08 · T11 评测报告 + A/B 定稿
 
 > 任务书 §3.3 D2「任务四 A/B 效率对照 + 打磨」。本版为 D2 评测定稿：全量重跑 golden（15 条）+ 专项集（记忆 5 对 / 越权 9 条 / 技能 2 条）+ A/B（8 条），报告新增 **v1/v2/v3 版本对照** 与 **A/B 摘要**；六指标全部达标，门禁 exit 0。

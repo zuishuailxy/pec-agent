@@ -166,7 +166,7 @@ DSH 平台（不改）
 
 - 失败归因 1 例：候选为「模型引用未检索到的条款号」或「金额二次 rescale」；记录修复前后对照。**（2026-11-08 已落地：真实失败为「模型越界尝试 bash/引导用户绕过工具面」，修复 = `policy/tool-boundary.ts` 能力边界 + `toolsNotAny`/g-15；见 `eval/failure-case.md`。）**
 - CR#1（自拟，非官方）：`order_lookup` 增加 `logisticsProvider` 字段 + 金额 ≥10 万需财务会签，同时影响工具/技能/记忆三层；45 分钟落地、既有评测全回归、补 ≥2 条用例、CHANGELOG 标注自拟。**（2026-11-08 已落地：物流商按物流单价三档派生 `derived_rule_CR1-v1`；R7 增 100,000.00 财务会签档；新增 g-13/g-14；实测见 CHANGELOG v1.0。）**
-- 干净环境复现：`git clone`/`npm ci`/`./dev/build.sh`/`node dev/test-tools.mjs`/headless 三段命令全跑通。
+- 干净环境复现：`git clone`/`npm ci`/`./dev/build.sh`/`node dev/test-tools.mjs`/headless 三段命令全跑通。**（2026-11-08 已验证：干净目录 `./dev/setup-profile.sh` + build + 136 passed + 三段演示全通；打包 `Candidate-PEC-2026-11-08.zip`、annotated tag `d2`。）**
 
 ## 6. 风险与缓解
 

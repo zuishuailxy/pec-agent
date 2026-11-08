@@ -121,14 +121,14 @@
   bash eval/run.sh && node eval/collect.mjs --gate
   ```
 
-## T12 defense + 文档定稿（D2）
+## T12 defense + 文档定稿（D2，已完成 2026-11-08）
 
-- [ ] `defense/defense.md`：20 分钟陈述提纲、追问清单（A/B 数字、技能护栏、guard 路径）、现场改码预案
-- [ ] `design.md` / `README.md` / `ARCHITECTURE.md` / `CHANGELOG.md` 定稿
+- [x] `defense/defense.md`：20 分钟陈述提纲（5 段）、30 条追问（A/B 数字/技能护栏/guard 路径/CR#1/失败归因，附文件行号）、现场改码 3 预案、压力问题应对、材料索引
+- [x] `design.md` / `README.md` / `ARCHITECTURE.md` / `CHANGELOG.md` 定稿；新增 `dev/setup-profile.sh` 支持干净环境复现；README 演示命令①明确必须调用 `advice_card` 出卡（与 g-01 口径一致）
 
-## T13 干净环境复现 + 打包 + d2 tag（D2，15:00 前）
+## T13 干净环境复现 + 打包 + d2 tag（D2，已完成 2026-11-08）
 
-- [ ] 干净目录复现：`./dev/build.sh` + `node dev/test-tools.mjs` + 三段演示命令全通
-- [ ] 打包 `Candidate-PEC-2026-11-08.zip`（排除 `.env` / `node_modules` / `.dsh-home` / `runs`）
-- [ ] `git tag d2`、工作区干净、提醒用户导出本会话（第一天记录）
-- **完成定义**：zip 解压后按 README 能跑通；tag 齐全。
+- [x] 干净目录复现（`/tmp/pec-clean`，排除 `.git/.env/.dsh-home/runs/node_modules`）：`./dev/setup-profile.sh` + `./dev/build.sh` + `node dev/test-tools.mjs` → **136 passed**；三段演示命令全通（① 0042 建议卡含 57,600.00/CL-07/采购主管/2026-11-16；② demo-memory 两轮断言全过；③ 技能命中 CL-45/5,239.50）
+- [x] 打包 **`Candidate-PEC-2026-11-08.zip`**（`pec-agent/` + `AI会话记录/`；排除 `.env`/`node_modules`/`.dsh-home`/`runs`/`.git`/`.DS_Store`）
+- [x] `git tag d2`（annotated）、工作区干净；提醒用户导出 D2 会话（本会话）到 `AI会话记录/D2/`
+- **完成定义**：zip 解压后按 README 能跑通 ✅；tag 齐全 ✅（`d1` / `d2`）。
