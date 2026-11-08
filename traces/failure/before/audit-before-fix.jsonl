@@ -1,0 +1,8 @@
+{"ts":"2026-11-08T04:31:12.472Z","event":"tool-surface.restricted","agentId":"session-b456865c-4aec-4b24-8e3b-e8ce6dbb2d7b","allow":["pec_data_catalog","order_lookup","supplier_profile","pricing_quote","freight_calc","contract_search","ticket_similar","advice_card","memory_recall","memory_remember","memory_forget","skill_write","skill"]}
+{"ts":"2026-11-08T04:31:15.125Z","event":"field-denied","field":"contract.text","role":"buyer","reason":"role-none","tool":"contract_search","userId":"U-07","tenantId":"T-001","supplierId":"SUP-1060"}
+{"ts":"2026-11-08T04:31:15.133Z","event":"field-denied","field":"contract.text","role":"buyer","reason":"role-none","tool":"contract_search","userId":"U-07","tenantId":"T-001","supplierId":"SUP-1060"}
+{"ts":"2026-11-08T04:31:15.140Z","event":"field-masked","field":"supplier.contacts","reason":"role-masked","role":"buyer","tool":"supplier_profile","userId":"U-07","tenantId":"T-001","resource":"suppliers#SUP-1060"}
+{"ts":"2026-11-08T04:31:22.394Z","event":"field-denied","field":"contract.text","role":"buyer","reason":"role-none","tool":"contract_search","userId":"U-07","tenantId":"T-001","supplierId":"SUP-1060"}
+{"ts":"2026-11-08T04:31:22.401Z","event":"field-denied","field":"contract.text","role":"buyer","reason":"role-none","tool":"contract_search","userId":"U-07","tenantId":"T-001","supplierId":"SUP-1060"}
+{"ts":"2026-11-08T04:31:22.408Z","event":"field-denied","field":"contract.text","role":"buyer","reason":"role-none","tool":"contract_search","userId":"U-07","tenantId":"T-001","supplierId":"SUP-1060"}
+{"ts":"2026-11-08T04:31:22.416Z","event":"field-denied","field":"contract.text","role":"buyer","reason":"role-none","tool":"contract_search","userId":"U-07","tenantId":"T-001","supplierId":"SUP-1042"}

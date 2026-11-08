@@ -14,7 +14,7 @@
                                 │ 插件（profile 加载 lib/index.js，apply(ctx)）
 ┌───────────────────────────────┴──────────────────────────────────────────┐
 │ plugins/pec-tools（唯一业务代码）                                          │
-│  index.ts：注册 12 工具 + guard + tool-surface + memory injection         │
+│  index.ts：注册 12 工具 + guard + tool-surface + tool-boundary + memory   │
 │  ┌──────────┐ ┌──────────┐ ┌──────────────────────────────┐ ┌──────────┐ │
 │  │ tools/   │ │ policy/  │ │ core/                        │ │ memory/  │ │
 │  │ 12 个    │ │ identity │ │ money（BigInt 4 位定点）      │ │ store    │ │
@@ -22,6 +22,7 @@
 │  │          │ │ guard    │ │                              │ │          │ │
 │  │          │ │ masking  │ │                              │ │          │ │
 │  │          │ │ surface  │ │                              │ │          │ │
+│  │          │ │ boundary │ │                              │ │          │ │
 │  └──────────┘ └──────────┘ └──────────────────────────────┘ └──────────┘ │
 └───────────────────────────────▲──────────────────────────────────────────┘
                                 │ CLI / 批跑
@@ -39,12 +40,12 @@
 |---|---|---|---|
 | 插件入口 | `src/index.ts` | 注册工具、安装 guard/tool-surface/记忆注入；`export const inject = ['tools']` | 业务规则细节 |
 | 业务工具 | `src/tools/*.ts` | 每个 `defineTool` 一个文件：入参校验、租户归属校验、render、provenance | 跨工具编排（由 Agent/技能决定） |
-| 策略 | `src/policy/` | `identity`（PEC_USER_ID→users）、`audit`（JSONL）、`guard`（伪造 tenantId 拒绝）、`masking`（角色矩阵）、`tool-surface`（allow 12+skill） | 资源级归属判断（在工具内做） |
+| 策略 | `src/policy/` | `identity`（PEC_USER_ID→users）、`audit`（JSONL）、`guard`（伪造 tenantId 拒绝）、`masking`（角色矩阵）、`tool-surface`（allow 12+skill 硬拦截）、`tool-boundary`（system prompt 能力边界软声明，T10） | 资源级归属判断（在工具内做） |
 | 核心 | `src/core/` | `money`（定点/舍入/日期差）、`provenance`（来源标记与 render 拼接） | 任何 I/O |
 | 记忆 | `src/memory/` | `store`（会话/用户两层、TTL、白名单、冲突 history）、`inject`（每 step 注入 3–5 条） | 业务数据查询 |
 | 技能 | `.dsh/skills/` | SKILL.md 文本（触发/序列/护栏/反例）；`skill_write` 负责落盘校验 | 硬约束（由工具/guard 兜底） |
 | 评测 | `eval/` | golden set、专项集、A/B、断言、六指标、门禁 | 线上服务 |
-| 证据 | `traces/` | 四类真实 headless 事件流 + 审计快照 | 可替代测试（但可复跑） |
+| 证据 | `traces/` | 四类真实 headless 事件流 + 审计快照 + `failure/`（T10 失败前后对照） | 可替代测试（但可复跑） |
 
 ## 3. 一次典型处置的数据流（题面 §2.3）
 
@@ -58,6 +59,7 @@
             contract_search（FTS5+同义词，只引用命中的条款号；无命中写“未检索到”）
  ④ 建议    advice_card：工具权威复算金额、校验 evidence 存在性、强制 R7/黑名单（含 CR#1 ≥10 万财务会签）、确定性 newDate
  ⑤ 记忆    order_lookup/ticket_similar/advice_card 自动写会话记忆；下一 step 由 systemPrompt.section 注入
+          另有一条静态 `pec:tool-boundary` section（order 10040）每次声明工具面边界（无 bash/文件工具，T10）
  ⑥ 复核    人确认/修改 → 标注集 → 技能沉淀（skill_write）/ A/B 素材
 ```
 
@@ -100,6 +102,8 @@ PEC_USER_ID（进程环境，可信）
                                                    │
 每个 proposed step：systemPrompt.section({name:'pec:memory', text:(ctx)=>…})
    └─ resolveIdentity(sessionId) → recallMemory → 挑选 3–5 条 → <pec_memory>…</pec_memory>
+另有静态段：systemPrompt.section({name:'pec:tool-boundary', order:10040, text:()=>…})
+   └─ 声明工具白名单（动态 PEC_TOOLS）+ 无 bash/文件工具 + 无命中如实回答 + 不得给用户绕过命令（T10）
        └─ 空记忆返回 ''（整段消失）；异常 try/catch 降级；每会话首次注入写 memory.injected 审计
 ```
 

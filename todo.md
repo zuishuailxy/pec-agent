@@ -96,10 +96,18 @@
   bash eval/run.sh && node eval/collect.mjs --gate
   ```
 
-## T10 失败归因 + 修复对照（D2）
+## T10 失败归因 + 修复对照（D2，已完成 2026-11-08）
 
-- [ ] 选 1 例真实失败（如模型引用未检索条款/金额二次 rescale），记录现象、根因、修复、修复前后事件流对照
-- **完成定义**：`eval/failure-case.md` + 前后 trace。
+- [x] 真实失败（比候选更可复现）：模型按通用编码助手先验**越界尝试 `bash`/文件读取/`sqlite3` 绕过受控工具面**（两例：检索无命中时调 bash 被拒；被要求绕工具面时把 5 段 sqlite3/grep 命令交给用户）。硬拦截未破，但存在无效调用/步数膨胀/引导用户绕审计的合规风险
+- [x] 修复：新增 `plugins/pec-tools/src/policy/tool-boundary.ts`（system prompt 固定声明工具白名单/无 bash 等工具/无命中如实回答/不得给用户绕过命令）+ `index.ts`/`build.sh` 接线；评测新增 `toolsNotAny` 断言 + golden `g-15`（修复前产物 FAIL、修复后 PASS）
+- [x] 交付：`eval/failure-case.md`（现象/根因/修复/前后对照/控制组/残留风险）+ `traces/failure/{before,after,controls}/`（前后事件流 + 审计 + README）
+- **完成定义**：`eval/failure-case.md` + 前后 trace ✅；修复前后：越界尝试 1→0、工具错误 1→0、步数 9→3、用户命令块 5→0；golden **15/15**、门禁 exit 0、工具冒烟 133 passed。
+- **验证命令**：
+  ```bash
+  cd pec-agent && ./dev/build.sh && node dev/test-tools.mjs
+  bash eval/run.sh && node eval/collect.mjs --gate
+  bash eval/run.sh --only g-15
+  ```
 
 ## T11 评测报告 + A/B 定稿（D2）
 

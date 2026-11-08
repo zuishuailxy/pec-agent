@@ -23,7 +23,7 @@ PEC 采购异常处置 Agent 插件。随 headless profile 加载（`.dsh-home/p
 | `memory_recall` / `memory_remember` / `memory_forget` | `src/tools/memory-tools.ts` | 两层记忆读写/撤销 |
 | `skill_write` | `src/tools/skill-write.ts` | 技能落盘（frontmatter/护栏/反例校验） |
 
-策略与基础设施：`src/policy/{identity,audit,guard,masking,tool-surface}.ts`、`src/core/{money,provenance}.ts`、`src/memory/{store,inject}.ts`、`src/{db,errors}.ts`。
+策略与基础设施：`src/policy/{identity,audit,guard,masking,tool-surface,tool-boundary}.ts`、`src/core/{money,provenance}.ts`、`src/memory/{store,inject}.ts`、`src/{db,errors}.ts`。
 
 ## 契约（所有工具遵守）
 

@@ -17,6 +17,7 @@ ESBUILD="$ROOT/dev/node_modules/.bin/esbuild"
   plugins/pec-tools/src/policy/audit.ts \
   plugins/pec-tools/src/policy/masking.ts \
   plugins/pec-tools/src/policy/tool-surface.ts \
+  plugins/pec-tools/src/policy/tool-boundary.ts \
   plugins/pec-tools/src/tools/catalog.ts \
   plugins/pec-tools/src/tools/business.ts \
   plugins/pec-tools/src/tools/order-lookup.ts \

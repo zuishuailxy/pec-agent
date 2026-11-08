@@ -1,6 +1,6 @@
 # PEC 采购异常处置 Agent（Procurement Exception Copilot）
 
-> 基于 DSH 0.2.1-rc.2 的采购异常处置 Agent 交付物：**12 个业务/记忆/技能工具 + 3 份 SKILL.md + 两层记忆 + 12 条 golden set + 专项集 + A/B 提效 + 门禁**。
+> 基于 DSH 0.2.1-rc.2 的采购异常处置 Agent 交付物：**12 个业务/记忆/技能工具 + 3 份 SKILL.md + 两层记忆 + 15 条 golden set + 专项集 + A/B 提效 + 门禁**。
 > 六项指标全部达标：回答准确率 100% · 引用可溯 100% · 记忆命中 100% · 技能复用 100% · **提效 73.5%** · 越权拦截 100%（证据见 [`eval/report.md`](eval/report.md)、[`eval/ab_report.md`](eval/ab_report.md)）。
 
 ## 1. 环境与前置
@@ -16,7 +16,7 @@
 ```bash
 cd pec-agent
 ./dev/build.sh                 # esbuild: plugins/pec-tools/src → lib（profile 加载 lib/index.js）
-node dev/test-tools.mjs        # 工具级冒烟（不需要模型）：113 passed
+node dev/test-tools.mjs        # 工具级冒烟（不需要模型）：133 passed
 ```
 
 ## 2. 三段演示命令（题面要求）
@@ -52,9 +52,9 @@ pec-agent/
 │   └── src/memory/             # store（两层记忆）/ inject（每轮 systemPrompt 注入）
 ├── .dsh/skills/                # delay-small-standard（手写）/ stock-replenish（Agent 沉淀）/ freight-anomaly-standard（样例）
 ├── memory/                     # store.json（运行产物，收工复位为空 seed）+ extract.md（白名单/抽取/注入规则）
-├── eval/                       # golden_set.jsonl 12 条 / run.sh / run.mjs / collect.mjs / special.mjs / ab.mjs
+├── eval/                       # golden_set.jsonl 15 条 / run.sh / run.mjs / collect.mjs / special.mjs / ab.mjs / failure-case.md
 │                              # report.md / summary.json / ab_report.md / ab_summary.json / special_summary.json
-├── traces/                     # qa / memory / skill-write / skill-hit 四类真实事件流 + README.md
+├── traces/                     # qa / memory / skill-write / skill-hit 四类真实事件流 + failure/（T10 前后对照） + README.md
 ├── dev/                        # build.sh / run-headless.sh / test-tools.mjs / demo-memory.sh
 ├── plan.md / todo.md / design.md / ARCHITECTURE.md / CHANGELOG.md
 └── db/                         # schema.sql / seed.sql / pec.db（只读）
@@ -82,7 +82,7 @@ pec-agent/
 ## 5. 复跑评测与门禁（六指标）
 
 ```bash
-bash eval/run.sh                  # 12 条 golden set（5 正常 / 3 边界 / 2 对抗 / 1 记忆 / 1 技能）
+bash eval/run.sh                  # 15 条 golden set（5 正常 / 3 边界 / 3 对抗 / 2 CR#1 / 1 记忆 / 1 技能）
 node eval/special.mjs             # 专项集：记忆 5 对 / 越权矩阵 9 条 / 技能命中 2 条
 node eval/ab.mjs                  # A/B：8 条 T-001 延迟工单，A 组无技能 vs B 组有技能
 node eval/collect.mjs --gate      # 合并报告 + 门禁（任一已评测指标不达标 → 退出码非 0）
@@ -109,6 +109,7 @@ node eval/collect.mjs --gate      # 合并报告 + 门禁（任一已评测指�
 - **金额**：`core/money.ts` 的 BigInt 4 位定点 + HALF_UP，中间值不二次 rescale；禁 JS number 累加。
 - **脱敏**：联系人按角色掩码、合同原文 buyer/manager/auditor 不可见；脱敏/拒绝都留痕。
 - **无害**：只读数据 + 建议卡，不执行写操作；人工确认体现在 `needHuman`/审批路径与审计，headless 下不依赖平台 `ask`。
+- **能力边界**：system prompt 固定声明工具白名单（动态取 `PEC_TOOLS`）并明确“无 bash/文件工具、检索无命中如实回答、不得把 sqlite3/grep 命令交给用户”（T10 修复）；硬拦截仍由 `policy/tool-surface.ts` 的 restrict 保证。
 - **题面缺口**（已声明，不伪造）：R8 汇率无字段 → 声明不支持；R11 成本价无字段 → 字段级越权落到 contacts 掩码+跨租户；R9 风险分为自定公式；R10 等值边界/R7 ≥20 万无样本 → 纯函数断言。
 - **CR#1（自拟，非官方；线下无官方 CR）**：`order_lookup` 增物流商派生字段（数据表无该字段，按物流单价 78/85/92 三档确定性派生并标 `derived_rule_CR1-v1`）；`advice_card` 的 R7 增「金额 ≥100,000.00 需财务会签」档（10–20 万为“采购主管+财务会签”）；技能护栏与记忆抽取同步。假设与回归见 `CHANGELOG.md` v1.0。
 
@@ -127,5 +128,6 @@ node eval/collect.mjs --gate      # 合并报告 + 门禁（任一已评测指�
 | [design.md](design.md) | 设计说明：平台适配、工具/权限/记忆/技能/评测设计、ADR 决策记录、数据缺口 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 分层架构、模块边界、一次处置的数据流、扩展点与运行时依赖 |
 | [CHANGELOG.md](CHANGELOG.md) | 行为变化、评测结果、口径冲突与修复（含自拟 CR#1） |
-| [traces/README.md](traces/README.md) | 四类 trace 的复跑命令与证据点 |
+| [traces/README.md](traces/README.md) | 四类 trace + T10 失败对照的复跑命令与证据点 |
+| [eval/failure-case.md](eval/failure-case.md) | T10 失败归因：现象/根因/修复/前后对照 |
 | [memory/extract.md](memory/extract.md) | 记忆白名单、抽取时机、冲突合并、注入规则、验证命令 |
