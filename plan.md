@@ -152,7 +152,7 @@ DSH 平台（不改）
 - 8 条 T-001 同类延迟工单（data-audit §12.2：`0114/0121/0108/0118/0170/0153/0109/0116`）。
 - A 组：临时移走 `.dsh/skills`（`/tmp`）；B 组放回。同模型、同数据、同 prompt、内存/审计隔离；正式跑前 1 条 warm-up 丢弃；每条 1 次，时间允许 3 次取中位。
 - 主指标：`tool_call` 事件数（native executor，避免 PTC 塌缩）；辅助：`step_end.usage` token（缺省容错）、墙钟、结论五元组一致率（action/关键金额/条款号/approvalPath/newDate 逐位）。
-- 门禁：`Δsteps ≥30%` 或 `Δtokens ≥30%`，且 B 一致率 ≥ A；输出 `eval/ab_report.md`。**（T11 定稿重跑 2026-11-08：8.25→3.13 步 ↓62.1%、token ↓16.1%、参考得分 0.85→0.875、一致率 97.5%，门禁 PASS；`eval/report.md` 含 v1/v2/v3 版本对照。）**
+- 门禁：`Δsteps ≥30%` 或 `Δtokens ≥30%`，且 B 一致率 ≥ A；输出 `eval/ab_report.md`。**（T11 定稿重跑 2026-11-08，最终工件：8.75→3.00 步 ↓65.7%、token ↓16.2%、参考得分 0.80→0.925、一致率 82.5%，门禁 PASS；首次跑 62.1% 亦达标；`eval/report.md` 含 v1/v2/v3 版本对照。）**
 
 ### M7 traces
 
