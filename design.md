@@ -436,5 +436,6 @@ bash eval/run.sh && node eval/collect.mjs --gate
 - **已完成（D2 · T9）**：自拟 CR#1 落地（工具/技能/记忆三层 + 假设与回归记录）；既有 golden 12 条全回归 + 新增 g-13/g-14；工具冒烟 133 passed；CHANGELOG v1.0 记录影响面/假设/回归。
 - **已完成（D2 · T10）**：失败归因 1 例（模型越界尝试 bash/引导用户绕过工具面）→ 修复（`policy/tool-boundary.ts` 静态能力边界 + `toolsNotAny` 断言 + `g-15`）；`eval/failure-case.md` + `traces/failure/` 前后对照；golden 15/15、门禁 exit 0。
 - **已完成（D2 · T11）**：评测报告 + A/B 定稿——全量重跑 golden 15/15 + 专项集 + A/B（↓62.1%、一致率 97.5%）；`eval/report.md` 新增 v1/v2/v3 版本对照与 A/B 摘要；六指标全部达标、门禁 exit 0；同批修复 a-07 双合规路径判定与 guard 纯函数单测（冒烟 136 passed）。
-- **计划中（D2）**：defense（T12）、干净环境复现 + 打包 + `d2`（T13）。**traces 五类（T7 四类 + T10 failure）与文档/`d1`（T8）、CR#1（T9）、失败归因（T10）已完成**。
+- **已完成（D2 · T12）**：`defense/defense.md`（20 分钟陈述提纲、30 条追问、现场改码 3 预案、压力问题、材料行号索引）；README/ARCHITECTURE/design/CHANGELOG 定稿；`dev/setup-profile.sh` 支持干净环境复现。
+- **计划中（D2）**：干净环境复现 + 打包 + `d2`（T13）。**traces 五类（T7 四类 + T10 failure）与文档/`d1`（T8）、CR#1（T9）、失败归因（T10）、评测定稿（T11）已完成**。
 - **已知缺口（题面/数据造成，已声明）**：R8 汇率不可实现；R11 成本价字段不存在；R9 风险分自定；R10 等值边界 0 样本；R7 ≥20 万 0 样本；状态机仅 3/5 状态有样本。

@@ -15,9 +15,12 @@
 
 ```bash
 cd pec-agent
+./dev/setup-profile.sh         # 生成本地 headless profile（换机/干净目录复现时执行；写入 pec-tools 与技能根的绝对路径）
 ./dev/build.sh                 # esbuild: plugins/pec-tools/src → lib（profile 加载 lib/index.js）
 node dev/test-tools.mjs        # 工具级冒烟（不需要模型）：136 passed
 ```
+
+> `dev/run-headless.sh` 强制 `DSH_HOME=<repo>/.dsh-home`（避免开发机用户级 profile/技能污染）；`.dsh-home/` 已 gitignore，干净环境先跑 `./dev/setup-profile.sh` 再跑 headless。
 
 ## 2. 三段演示命令（题面要求）
 
@@ -47,7 +50,7 @@ pec-agent/
 │   ├── src/tools/              # catalog / order_lookup / supplier_profile / pricing_quote /
 │   │                           # freight_calc / contract_search / ticket_similar / advice_card /
 │   │                           # memory_recall / memory_remember / memory_forget / skill_write
-│   ├── src/policy/             # identity / audit / guard / masking / tool-surface
+│   ├── src/policy/             # identity / audit / guard / masking / tool-surface / tool-boundary
 │   ├── src/core/               # money（BigInt 4 位定点）/ provenance（[来源: table#rowId]）
 │   └── src/memory/             # store（两层记忆）/ inject（每轮 systemPrompt 注入）
 ├── .dsh/skills/                # delay-small-standard（手写）/ stock-replenish（Agent 沉淀）/ freight-anomaly-standard（样例）
@@ -55,7 +58,8 @@ pec-agent/
 ├── eval/                       # golden_set.jsonl 15 条 / run.sh / run.mjs / collect.mjs / special.mjs / ab.mjs / failure-case.md
 │                              # report.md / summary.json / ab_report.md / ab_summary.json / special_summary.json
 ├── traces/                     # qa / memory / skill-write / skill-hit 四类真实事件流 + failure/（T10 前后对照） + README.md
-├── dev/                        # build.sh / run-headless.sh / test-tools.mjs / demo-memory.sh
+├── dev/                        # build.sh / run-headless.sh / test-tools.mjs / demo-memory.sh / setup-profile.sh
+├── defense/defense.md          # 答辩：20 分钟陈述提纲 + 30 条追问 + 现场改码预案
 ├── plan.md / todo.md / design.md / ARCHITECTURE.md / CHANGELOG.md
 └── db/                         # schema.sql / seed.sql / pec.db（只读）
 ```
@@ -113,11 +117,26 @@ node eval/collect.mjs --gate      # 合并报告 + 门禁（任一已评测指�
 - **题面缺口**（已声明，不伪造）：R8 汇率无字段 → 声明不支持；R11 成本价无字段 → 字段级越权落到 contacts 掩码+跨租户；R9 风险分为自定公式；R10 等值边界/R7 ≥20 万无样本 → 纯函数断言。
 - **CR#1（自拟，非官方；线下无官方 CR）**：`order_lookup` 增物流商派生字段（数据表无该字段，按物流单价 78/85/92 三档确定性派生并标 `derived_rule_CR1-v1`）；`advice_card` 的 R7 增「金额 ≥100,000.00 需财务会签」档（10–20 万为“采购主管+财务会签”）；技能护栏与记忆抽取同步。假设与回归见 `CHANGELOG.md` v1.0。
 
-## 8. 打包与提交提醒
+## 8. 干净环境复现 + 打包
 
-- 最终打包 `姓名-PEC-日期.zip`；本仓以 **`Candidate` 占位**，提交前请把包名与 README 中的作者占位替换为真实姓名。
+**干净环境复现（换机 / 解压后）**：依赖需可用（`dev/node_modules`、`plugins/pec-tools/node_modules`，或用预装环境）；技能根与 profile 均按当前绝对路径生成，不依赖开发机：
+
+```bash
+cd pec-agent
+cp .env.example .env           # 填入 DEEPSEEK_API_KEY（.env 不进包）
+./dev/setup-profile.sh         # 生成本地 headless profile
+./dev/build.sh && node dev/test-tools.mjs      # 期望 136 passed
+./dev/demo-memory.sh                            # 多轮记忆（一键断言）
+./dev/run-headless.sh --json "PO-20260906-0114 延迟，按标准流程处理，最后给出建议卡"   # 技能命中
+bash eval/run.sh && node eval/collect.mjs --gate # 15/15 + 六指标 + exit 0
+```
+
+**打包与提交提醒**
+
+- 最终打包 `姓名-PEC-日期.zip`（本仓默认 `Candidate-PEC-2026-11-08.zip`）；以 **`Candidate` 占位**，提交前请把包名与 README 中的作者占位替换为真实姓名。
+- 包内容：`pec-agent/`（插件 + skills + eval + traces + 文档 + defense，已剔除 `.env`/`node_modules`/`.dsh-home`/`runs`）+ `AI会话记录/`（D1/D2 会话导出）。
 - 打包排除：`.env`、`node_modules/`、`.dsh-home/`、`runs/`、`.DS_Store`（`.gitignore` 已覆盖）。
-- 每日收工打 tag：`d1`（第一天）/ `d2`（第二天）；工作区保持干净可重跑。
+- 每日收工打 tag：`d1`（第一天）/ `d2`（第二天，含 CR#1/T10 后全量回归）；工作区保持干净可重跑。
 
 ## 9. 文档索引
 
@@ -131,3 +150,4 @@ node eval/collect.mjs --gate      # 合并报告 + 门禁（任一已评测指�
 | [traces/README.md](traces/README.md) | 四类 trace + T10 失败对照的复跑命令与证据点 |
 | [eval/failure-case.md](eval/failure-case.md) | T10 失败归因：现象/根因/修复/前后对照 |
 | [memory/extract.md](memory/extract.md) | 记忆白名单、抽取时机、冲突合并、注入规则、验证命令 |
+| [defense/defense.md](defense/defense.md) | 答辩材料：20 分钟陈述提纲、30 条追问问答、现场改码预案、压力问题应对、材料索引 |

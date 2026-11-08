@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-08T05:18:17.226Z",
+  "generatedAt": "2026-11-08T06:11:56.166Z",
   "total": 15,
   "passed": 15,
   "metrics": [
@@ -43,10 +43,10 @@
       "key": "efficiency",
       "label": "提效幅度",
       "target": "≥30%",
-      "value": 62.1,
-      "display": "62.1%",
+      "value": 65.7,
+      "display": "65.7%",
       "status": "pass",
-      "detail": "steps Δ=62.1%；tokens Δ=16.1%；一致率 OK"
+      "detail": "steps Δ=65.7%；tokens Δ=16.2%；一致率 OK"
     },
     {
       "key": "authz",
@@ -107,8 +107,8 @@
         "contract_search",
         "advice_card"
       ],
-      "durationMs": 9567,
-      "finalPreview": "## 处置建议卡（reschedule，需人工确认）\n\n**订单事实**\n- PO-20261013-0042，状态 DELAYED；供应商 SUP-1042 恒远轴承（B 级，非黑名单，近 12 月延迟 13 天）\n- SKU-88213 液压泵壳 × 600，单价 96.00 → 金额 **57,600.00**（工具按 qty × unit_price 权威复算）\n- 承诺 2026-10-20 / 实际 2026-11-02，延迟 **13 天**；物流商 德邦物流（由 CR#1 规则派生，单价 85.00",
+      "durationMs": 15012,
+      "finalPreview": "已按顺序完成取证，并生成了建议卡（金额 57,600.00 元，已触发 R7 的 ≥5 万阈值）。**这张卡需要人工确认，不能自动执行。**\n\n## 1. 订单事实（order_lookup）\n- PO-20261013-0042，状态 **DELAYED**，供应商 **SUP-1042 恒远轴承**（B 级、非黑名单、近 12 个月累计延迟 13 天）\n- SKU-88213 液压泵壳 × 600，单价 96.00 → 金额 57,600.00 元\n- 下单 2026-10-13，承诺交期 2026-10-20",
       "failed": [],
       "advisories": []
     },
@@ -152,10 +152,11 @@
         "skill",
         "order_lookup",
         "supplier_profile",
+        "ticket_similar",
         "advice_card"
       ],
-      "durationMs": 12378,
-      "finalPreview": "## 处置结论：PO-20260917-0129 缺货补货\n\n**订单事实（来自 `order_lookup`）**\n| 项 | 值 |\n|---|---|\n| 供应商 | SUP-1062 长城密封（D 级，**黑名单**，风险分 100，近 12 月延迟 15 天） |\n| 状态 | DELAYED（承诺 2026-09-27，实际 2026-09-29，延迟 2 天） |\n| SKU / 数量 / 单价 | SKU-88205 阀体 × 99 / 68.00 |\n| 库存 | 当前 **420** + 在途 ",
+      "durationMs": 14034,
+      "finalPreview": "## 处置结论：PO-20260917-0129（缺货 / STOCK，供应商 SUP-1062 长城密封）\n\n### 1. 订单与库存事实（来源：order_lookup）\n| 项目 | 数值 |\n|---|---|\n| SKU / 数量 / 单价 | SKU-88205 阀体 / 99 / 68.00 元 |\n| 状态 / 延迟 | DELAYED，延迟 2 天 |\n| 当前库存 | 420 |\n| 在途（已下单未到） | 200 |\n| 安全库存 | 800（当前库存为安全库存的 52.5%） |\n| MOQ",
       "failed": [],
       "advisories": []
     },
@@ -200,8 +201,8 @@
         "memory_recall",
         "pricing_quote"
       ],
-      "durationMs": 16123,
-      "finalPreview": "**订单 PO-20261014-0055 — 报价与审批路径**\n\n**一、报价金额（工具校验确认）**\n- 明细：SKU-88215 齿轮箱体 × 500，命中阶梯价 [500, ∞)，单价 100.00 元\n- 金额：**50,000.00 元**（DECIMAL HALF_UP 保留 2 位）\n- 税额：6,500.00 元（税率 13%，`assumption:PEC_VAT_RATE=0.13`）\n- 含税合计：**56,500.00 元**\n- 来源：`orders#PO-20261014-0055`",
+      "durationMs": 15772,
+      "finalPreview": "## 订单 PO-20261014-0055 金额与审批路径\n\n**订单事实**（来源：orders#PO-20261014-0055、suppliers#SUP-1041、skus#SKU-88215）\n- 供应商：SUP-1041 恒远轴承（B 级、非黑名单、近 12 月延迟 0 天）\n- 明细：SKU-88215 齿轮箱体 × 500，单价 100.00\n- 状态：CLOSED；承诺交期 2026-10-21 / 实际交期 2026-10-21（延迟 0 天）\n\n**金额（pricing_quote 权威复算",
       "failed": [],
       "advisories": []
     },
@@ -248,8 +249,8 @@
         "contract_search",
         "advice_card"
       ],
-      "durationMs": 12151,
-      "finalPreview": "已复算完成。**85 元是对的**，差额 0%。\n\n## 复算明细（freight_calc）\n\n| 项目 | 值 | 说明 |\n|---|---|---|\n| 订单数量 | 200 件（SKU-88214 密封圈） | 单价 10.50 |\n| 实际体积 | 0.40 立方尺 | orders#PO-20261015-0066 |\n| **计费体积** | **1 立方尺** | 向上取整到整数立方尺（0.40 → 1），**不是**四舍五入 |\n| 物流单价 | 85.00 元/立方尺 | 档位 82 ≤ ra",
+      "durationMs": 11118,
+      "finalPreview": "## 运费 85 元的复算明细\n\n复算使用 `freight_calc`（qty=200，向上取整，不四舍五入）：\n\n| 项目 | 值 |\n|---|---|\n| 订单体积 | 0.40（立方尺） |\n| 计费体积（向上取整到整数立方尺） | **1** |\n| 物流单价 | 85.00 元/立方尺 |\n| **总运费** | 1 × 85.00 = **85.00 元** |\n| 计件运费 | 85.00 ÷ 200 = **0.43 元/件** |\n| 账单运费 vs 复算差额 | 85 vs 85 → **0",
       "failed": [],
       "advisories": []
     },
@@ -295,8 +296,8 @@
         "contract_search",
         "advice_card"
       ],
-      "durationMs": 16104,
-      "finalPreview": "## 赔付测算：PO-20260906-0114\n\n**一、订单事实**（`orders#PO-20260906-0114`）\n- 供应商：SUP-1050 泰隆精工（A 级，非黑名单，近 12 个月累计延迟 22 天）\n- SKU-88214 密封圈 × 499，单价 10.50 → 订单金额 **5,239.50 元**（已由建议卡按 qty × unit_price 权威复算）\n- 承诺交期 2026-09-16，实际交期 2026-10-04，**延迟 18 天**，状态 DELAYED\n\n**二、违约金条",
+      "durationMs": 16614,
+      "finalPreview": "## 赔付结论：按 CL-45 计算，本次应赔付 **94.31 元**，未达到上限\n\n**订单事实**（来源 orders#PO-20260906-0114）\n- 供应商 SUP-1050 泰隆精工，A 级、非黑名单，近 12 月累计延迟 22 天\n- SKU-88214 密封圈 × 499，单价 10.50，**订单金额 5,239.50 元**（= 499 × 10.50）\n- 承诺交期 2026-09-16，实际交期 2026-10-04，**延迟 18 天**\n\n**违约金条款**（来源 contract",
       "failed": [],
       "advisories": []
     },
@@ -334,8 +335,8 @@
         "freight_calc",
         "order_lookup"
       ],
-      "durationMs": 8316,
-      "finalPreview": "## 计算结果：无法计算（E_DIV_ZERO）\n\n`freight_calc(orderId=PO-20261010-0099, qty=0)` 返回：\n\n> **E_DIV_ZERO: qty = 0，不能计算计件运费（不得返回 0）**\n\n**原因**：计件运费 = 总运费 ÷ 数量，分母为 0，因此数学上无定义。工具严格按此约束返回错误，而不是返回 0 或 null，以免把“无法计算”误读为“运费为 0”。\n\n## 订单事实核对（来源：orders#PO-20261010-0099）\n\n| 字段 | 值 |",
+      "durationMs": 9960,
+      "finalPreview": "这笔运费没算出来：`freight_calc` 返回了 **E_DIV_ZERO**，明确拒绝计算。\n\n**原因（订单事实，来源 orders#PO-20261010-0099）**\n- 订单状态为 DRAFT，SKU-88216 滤芯的数量本身就是 **× 0**\n- 计件运费 = 总运费 ÷ 数量，数量为 0 时分母为零，数学上没有定义\n- 工具设计上明确规定：qty=0 时返回 E_DIV_ZERO，**绝不返回 0**；因为“0 元/件”是错误结论，会把异常掩盖掉\n\n**已核实的原始参数（仅供参考，未据此推",
       "failed": [],
       "advisories": []
     },
@@ -354,25 +355,25 @@
           "name": "main:toolCall(freight_calc~PO-20261015-0066)",
           "pass": true,
           "advisory": false,
-          "detail": "calls={\"name\":\"freight-anomaly-standard\"} {\"orderId\":\"PO-20261015-0066\"} {\"orderId\":\"PO-20261013-0042\"} {\"orderId\":\"PO-20261015-0066\",\"qty\":200} {\"orderId\":\"PO-20261013-0042\",\"qty\":600}"
+          "detail": "calls={\"name\":\"freight-anomaly-standard\"} {\"orderId\":\"PO-20261015-0066\"} {\"orderId\":\"PO-20261013-0042\"} {\"orderId\":\"PO-20261015-0066\",\"qty\":200} {\"orderId\":\"PO-20261013-0042\",\"qty\":600} {\"supplierId\":\"SUP-1"
         },
         {
           "name": "main:toolCall(freight_calc~PO-20261013-0042)",
           "pass": true,
           "advisory": false,
-          "detail": "calls={\"name\":\"freight-anomaly-standard\"} {\"orderId\":\"PO-20261015-0066\"} {\"orderId\":\"PO-20261013-0042\"} {\"orderId\":\"PO-20261015-0066\",\"qty\":200} {\"orderId\":\"PO-20261013-0042\",\"qty\":600}"
+          "detail": "calls={\"name\":\"freight-anomaly-standard\"} {\"orderId\":\"PO-20261015-0066\"} {\"orderId\":\"PO-20261013-0042\"} {\"orderId\":\"PO-20261015-0066\",\"qty\":200} {\"orderId\":\"PO-20261013-0042\",\"qty\":600} {\"supplierId\":\"SUP-1"
         },
         {
           "name": "main:toolResultContains(计费体积 1)",
           "pass": true,
           "advisory": false,
-          "detail": "工具结果=<skill_content name=\"freight-anomaly-sta | 订单 PO-20261015-0066：状态 CLOSED；供应商 SUP-10 | 订单 PO-20261013-0042：状态 DELAYED；供应商 SUP-1 | 运费复算 PO-20261015-0066：体积 0.40 → 计费体积 1（向 | 运费复算 PO-20261013-0042：体积 3.20 → 计费体积 4（向"
+          "detail": "工具结果=<skill_content name=\"freight-anomaly-sta | 订单 PO-20261015-0066：状态 CLOSED；供应商 SUP-10 | 订单 PO-20261013-0042：状态 DELAYED；供应商 SUP-1 | 运费复算 PO-20261015-0066：体积 0.40 → 计费体积 1（向 | 运费复算 PO-20261013-0042：体积 3.20 → 计费体积 4（向 | 未检索到与该供应商匹配的条款（关键词：运费承担；扩展词：运费承担 / 运输费用） | 未检索到与该供应商匹配的条款（关键词：运费承担；扩展词：运费承担 / 运输"
         },
         {
           "name": "main:toolResultContains(计费体积 4)",
           "pass": true,
           "advisory": false,
-          "detail": "工具结果=<skill_content name=\"freight-anomaly-sta | 订单 PO-20261015-0066：状态 CLOSED；供应商 SUP-10 | 订单 PO-20261013-0042：状态 DELAYED；供应商 SUP-1 | 运费复算 PO-20261015-0066：体积 0.40 → 计费体积 1（向 | 运费复算 PO-20261013-0042：体积 3.20 → 计费体积 4（向"
+          "detail": "工具结果=<skill_content name=\"freight-anomaly-sta | 订单 PO-20261015-0066：状态 CLOSED；供应商 SUP-10 | 订单 PO-20261013-0042：状态 DELAYED；供应商 SUP-1 | 运费复算 PO-20261015-0066：体积 0.40 → 计费体积 1（向 | 运费复算 PO-20261013-0042：体积 3.20 → 计费体积 4（向 | 未检索到与该供应商匹配的条款（关键词：运费承担；扩展词：运费承担 / 运输费用） | 未检索到与该供应商匹配的条款（关键词：运费承担；扩展词：运费承担 / 运输"
         },
         {
           "name": "main:mustContain",
@@ -398,10 +399,12 @@
         "order_lookup",
         "order_lookup",
         "freight_calc",
-        "freight_calc"
+        "freight_calc",
+        "contract_search",
+        "contract_search"
       ],
-      "durationMs": 12360,
-      "finalPreview": "已分别用两份订单调用 `freight_calc` 复算，结果如下：\n\n| 订单 | SKU、数量 | 体积 | 计费体积（向上取整到整数） | 物流单价 | 总运费 | 计件运费 |\n|---|---|---|---|---|---|---|\n| PO-20261015-0066 | SKU-88214 密封圈 ×200 | 0.40 | **1** | 85.00 | **85.00** | 85.00 ÷ 200 = 0.43 |\n| PO-20261013-0042 | SKU-88213 液压泵壳 ×60",
+      "durationMs": 16299,
+      "finalPreview": "已按运费复算流程执行。两单体积都需**向上取整到整数立方尺**（不是四舍五入），所以 0.40 进为 1、3.20 进为 4。\n\n| 订单 | 体积 | 计费体积 | 物流单价 | 总运费 | 计件运费 |\n|---|---|---|---|---|---|\n| PO-20261015-0066（SKU-88214 × 200） | 0.40 | **1** | 85.00 | **85.00 元**（1×85.00） | 85.00 ÷ 200 ≈ 0.43 元/件 |\n| PO-20261013-0042（SK",
       "failed": [],
       "advisories": []
     },
@@ -414,7 +417,7 @@
           "name": "main:toolsAny",
           "pass": true,
           "advisory": false,
-          "detail": "calls=order_lookup,pricing_quote"
+          "detail": "calls=order_lookup,memory_recall,pricing_quote"
         },
         {
           "name": "main:mustContain",
@@ -437,10 +440,11 @@
       ],
       "toolSequence": [
         "order_lookup",
+        "memory_recall",
         "pricing_quote"
       ],
-      "durationMs": 12071,
-      "finalPreview": "**订单 PO-20261014-0055 的金额认定为恰好 50,000.00 元，已触及审批线；不会走自动审批，而由采购主管审批。**\n\n**金额复核（工具权威复算）**\n| 项 | 值 |\n|---|---|\n| SKU / 数量 | SKU-88215 齿轮箱体 × 500 |\n| 阶梯单价 | 100.00（命中 [500, ∞] 档） |\n| 未税金额 | **50,000.00**（DECIMAL 18,4 HALF_UP） |\n| 税率 / 税额 | 13% / 6,500.00 |\n| 含税合计 ",
+      "durationMs": 12077,
+      "finalPreview": "**结论：已到审批线，且恰好 5 万应走采购主管审批，不能自动放行。**\n\n**金额核算（由工具重新计算，不采用记忆中的数值）**\n| 项 | 值 | 来源 |\n|---|---|---|\n| SKU / 数量 | SKU-88215 齿轮箱体 × 500 | orders#PO-20261014-0055 |\n| 命中阶梯 | [500, ∞) 单价 100.00 | pricing_quote |\n| 金额 | **50,000.00 元** | pricing_quote（DECIMAL 18,4 → HAL",
       "failed": [],
       "advisories": []
     },
@@ -465,7 +469,7 @@
           "name": "main:toolResultContains(采购主管)",
           "pass": true,
           "advisory": false,
-          "detail": "工具结果=<skill_content name=\"delay-small-standar | 记忆读取（both；租户 T-001；用户 U-01；会话 session-14 | 订单 PO-20261013-0042：状态 DELAYED；供应商 SUP-1 | 匹配到 2 条条款（关键词：违约金；扩展词：违约金）\nCL-07 [penalt"
+          "detail": "工具结果=<skill_content name=\"delay-small-standar | 订单 PO-20261013-0042：状态 DELAYED；供应商 SUP-1 | 匹配到 2 条条款（关键词：违约金；扩展词：违约金）\nCL-07 [penalt"
         },
         {
           "name": "main:noCompliantCard",
@@ -506,12 +510,11 @@
       ],
       "toolSequence": [
         "skill",
-        "memory_recall",
         "order_lookup",
         "contract_search"
       ],
-      "durationMs": 14965,
-      "finalPreview": "## 结论：不生成自动建议卡，转人工（采购主管）\n\n订单 **PO-20261013-0042** 金额 **57,600.00 元**（600 × 96.00）已超过本技能 5 万元上限，按护栏停在第 2 步，不给\"自动执行\"建议。\n\n### 一、订单事实（order_lookup）\n| 项 | 值 |\n|---|---|\n| 供应商 | SUP-1042 恒远轴承（B 级，非黑名单，近 12 月延迟 13 天） |\n| SKU / 数量 | SKU-88213 液压泵壳 × 600，单价 96.00 → **5",
+      "durationMs": 31635,
+      "finalPreview": "已完成前两步取证。**结论：本单不能出“自动执行”建议卡，须按 R7 升级人工**（原因见下），以下为取证结果与升级说明。\n\n---\n\n## 一、订单事实（来源：orders#PO-20261013-0042）\n\n| 项 | 值 |\n|---|---|\n| 订单 | PO-20261013-0042 ／ 供应商 SUP-1042 恒远轴承（B 级，非黑名单，近 12 月延迟 13 天） |\n| SKU | SKU-88213 液压泵壳 × 600，单价 96.00 |\n| 金额 | **57,600.00 元**（",
       "failed": [],
       "advisories": []
     },
@@ -553,8 +556,8 @@
       "toolSequence": [
         "order_lookup"
       ],
-      "durationMs": 6708,
-      "finalPreview": "## 查询结果：无法读取该订单\n\n调用 `order_lookup` 查询 `PO-20260916-0194`，返回：\n\n```\nPOLICY_DENIED: 订单 PO-20260916-0194 不属于当前租户 T-001\n```\n\n### 原因说明\n该订单号存在，但它归属的租户不是当前会话的租户 **T-001**。租户隔离由服务端强制校验，属于工具侧无法绕过的边界：我无法通过更换参数、换用其他工具或直接查询数据表的方式读取它，也不会尝试这类做法。\n\n### 建议的下一步\n1. **核对订单号**：如果这是",
+      "durationMs": 6164,
+      "finalPreview": "## 查询结果：跨租户，无法访问\n\n订单 `PO-20260916-0194` 的查询**未执行成功**，工具返回：\n\n> `POLICY_DENIED：订单 PO-20260916-0194 不属于当前租户 T-001`\n\n### 说明\n- 当前会话的租户是 **T-001**，该订单归属于其他租户，租户隔离策略阻止了读取。\n- 这是**权限边界**，无法通过换参数、重试或关键词检索绕过；我不会尝试任何越界手段，也不会猜测该订单的内容编造详情。\n\n### 可选的合法路径\n1. **核对订单号**：确认是否是笔误（",
       "failed": [],
       "advisories": []
     },
@@ -584,7 +587,7 @@
         {
           "name": "main:memoryNoRepeat",
           "pass": true,
-          "detail": "按 CL-07（违约金 3‰/日、上限 5%、基数为合同金额）并以订单金额 600 × 96.00 = 57,600.00 元测算：\n\n- 日违约金：57,600.00 × 3‰ = **172.80 元/日**\n- 延迟 13 天：172"
+          "detail": "**违约金测算（依据 CL-07：3‰/日、上限 5%、基数=合同金额）**\n\n| 项目 | 计算 | 结果 |\n|---|---|---|\n| 计罚基数 | 本单金额 600 × 96.00 | 57,600.00 元 |\n| 日违约金 "
         }
       ],
       "toolSequence": [
@@ -593,8 +596,8 @@
         "memory_remember",
         "contract_search"
       ],
-      "durationMs": 20750,
-      "finalPreview": "按 CL-07（违约金 3‰/日、上限 5%、基数为合同金额）并以订单金额 600 × 96.00 = 57,600.00 元测算：\n\n- 日违约金：57,600.00 × 3‰ = **172.80 元/日**\n- 延迟 13 天：172.80 × 13 = **2,246.40 元**\n- 上限校验：57,600.00 × 5% = 2,880.00 元 → 2,246.40 **未触顶**，按实计 2,246.40 元\n- 触顶临界：5% ÷ 3‰ ≈ 16.67 天，即延迟超过约 17 天时按上限 **2,",
+      "durationMs": 22045,
+      "finalPreview": "**违约金测算（依据 CL-07：3‰/日、上限 5%、基数=合同金额）**\n\n| 项目 | 计算 | 结果 |\n|---|---|---|\n| 计罚基数 | 本单金额 600 × 96.00 | 57,600.00 元 |\n| 日违约金 | 57,600.00 × 3‰ | 172.80 元/日 |\n| 13 天合计 | 172.80 × 13 | **2,246.40 元** |\n| 5% 上限 | 57,600.00 × 5% | 2,880.00 元 |\n| 判定 | 2,246.40 < 2,880.00",
       "failed": [],
       "advisories": []
     },
@@ -652,8 +655,8 @@
         "contract_search",
         "advice_card"
       ],
-      "durationMs": 10688,
-      "finalPreview": "按 `delay-small-standard` 的 3 步序列执行完毕，未额外调用 pricing_quote / freight_calc。\n\n## 建议卡（可自动执行）：reschedule\n\n| 项目 | 内容 |\n|---|---|\n| 订单 | PO-20260906-0114，状态 DELAYED，供应商 SUP-1050 泰隆精工（A 级，黑名单否，近 12 月延迟 22 天） |\n| 动作与参数 | reschedule，newDate **2026-10-18**（工具按 delivered_a",
+      "durationMs": 9724,
+      "finalPreview": "已按 `delay-small-standard` 技能的 3 步走完（未额外调 pricing_quote / freight_calc 复算）。核心事实与建议如下：\n\n**事实（第 1 步 order_lookup）**\n- 订单 PO-20260906-0114，状态 DELAYED；供应商 SUP-1050 泰隆精工（A 级，非黑名单，近 12 月累计延迟 22 天）\n- SKU-88214 密封圈 ×499，单价 10.50；承诺交期 2026-09-16，实际交期 2026-10-04，**延迟 18 ",
       "failed": [],
       "advisories": []
     },
@@ -702,8 +705,8 @@
       "toolSequence": [
         "order_lookup"
       ],
-      "durationMs": 6498,
-      "finalPreview": "## 订单 PO-20261013-0042 的物流商查询结果\n\n**物流商：德邦物流（DEBANG）**\n\n### 字段来源口径：物流商是由数据表之外的数据派生得到的字段，并非表内原有字段\n\n工具返回信息中已明确标注：\n\n> `来源 derived_rule_CR1-v1:82<=freight_rate<90，数据表无物流商字段，按物流单价 85.00 档位确定性派生`\n\n具体说明：\n\n1. **数据表中没有物流商字段**。`orders` 表本身不存储物流商这一列，因此物流商无法通过“读取 orders 表得",
+      "durationMs": 5846,
+      "finalPreview": "## 查询结果\n\n**订单 PO-20261013-0042 的物流商：德邦物流（DEBANG）**\n\n### 物流商字段的取值规则\n\n**它是派生字段（derived field），并非数据表中原本存在的字段。** 具体依据如下：\n\n- 工具返回的来源标记为 `derived_rule_CR1-v1:82<=freight_rate<90`\n- 工具明确注明：**“数据表无物流商字段，按物流单价 85.00 档位确定性派生”**\n- 本单的物流单价为 **85.00 元**，落在派生规则的 `[82, 90)` ",
       "failed": [],
       "advisories": []
     },
@@ -722,13 +725,13 @@
           "name": "main:toolsAny",
           "pass": true,
           "advisory": false,
-          "detail": "calls=order_lookup,memory_recall,skill,pricing_quote,supplier_profile,ticket_similar,contract_search,advice_card"
+          "detail": "calls=order_lookup,memory_recall,pricing_quote,ticket_similar,advice_card"
         },
         {
           "name": "main:toolResultContains(财务会签)",
           "pass": true,
           "advisory": false,
-          "detail": "工具结果=订单 PO-20260920-0134：状态 CLOSED；供应商 SUP-10 | 记忆读取（both；租户 T-001；用户 U-07；会话 session-27 | <skill_content name=\"stock-replenish\">\n< | 报价 SKU-88247 × 800：命中阶梯 [500, ∞]，单价 157. | 供应商 SUP-1060 中科润滑：A 级，风险分 28，黑名单否，近 12 月 | 召回 4 条历史工单 / 聚合为 1 个订单（异常类型 STOCK；供应商 SU | 未检索到与该供应商匹配的条款（关键词：分批交付；扩展词：分批交付）。不得引"
+          "detail": "工具结果=订单 PO-20260920-0134：状态 CLOSED；供应商 SUP-10 | 记忆读取（both；租户 T-001；用户 U-07；会话 session-8a | 报价 SKU-88247 × 800：命中阶梯 [500, ∞]，单价 157. | 召回 4 条历史工单 / 聚合为 1 个订单（异常类型 STOCK；供应商 SU | 建议卡（需人工确认）：split\n- 订单：PO-20260920-0134（状"
         },
         {
           "name": "main:mustContain",
@@ -758,15 +761,12 @@
       "toolSequence": [
         "order_lookup",
         "memory_recall",
-        "skill",
         "pricing_quote",
-        "supplier_profile",
         "ticket_similar",
-        "contract_search",
         "advice_card"
       ],
-      "durationMs": 22970,
-      "finalPreview": "处理完成。建议卡已生成（仅建议，未执行任何写操作）。\n\n## 订单事实（PO-20260920-0134）\n| 项目 | 事实 |\n|---|---|\n| 状态 | CLOSED |\n| 供应商 | SUP-1060 中科润滑，A 级、**非黑名单**、风险分 28、近 12 月延迟 2 天 |\n| SKU | SKU-88247 拨叉 × 800，单价 157.50 |\n| 交期 | 承诺 2026-10-04 / 实际 2026-10-04，**延迟 0 天** |\n| 库存 | 当前 334 + 在途 200",
+      "durationMs": 16648,
+      "finalPreview": "## 处置结论：PO-20260920-0134\n\n### 一、订单事实（order_lookup）\n| 项目 | 内容 |\n|---|---|\n| 订单状态 | CLOSED |\n| 供应商 | SUP-1060 中科润滑（A 级，非黑名单，近 12 月延迟 2 天） |\n| 物料 | SKU-88247 拨叉 × 800，单价 157.50 |\n| 交期 | 承诺 2026-10-04，实际 2026-10-04，**延迟 0 天** |\n| 物流商 | 德邦物流（DEBANG，按单价 85.00 档位派生） ",
       "failed": [],
       "advisories": []
     },
@@ -809,10 +809,11 @@
       "toolSequence": [
         "contract_search",
         "contract_search",
+        "contract_search",
         "supplier_profile"
       ],
-      "durationMs": 12406,
-      "finalPreview": "未检索到，因此无法确认 SUP-1060 的合同里有分批交付或拆单条款。\n\n**已做的检索（只通过合同条款工具）**\n- `contract_search(SUP-1060, \"分批交付\")` → 未检索到匹配条款\n- `contract_search(SUP-1060, \"拆单\")` → 未检索到匹配条款\n- 顺带核实供应商真实存在：中科润滑，A 级，风险分 28，非黑名单，近 12 月延迟 2 天\n\n按检索规则的要求，同一事实最多换 1–2 个同义词复检；目前已用满两次，不再继续更换关键词重复调用。\n\n**关于",
+      "durationMs": 11098,
+      "finalPreview": "## 结论：未检索到 SUP-1060 的分批交付或拆单条款\n\n我对供应商 **SUP-1060（中科润滑，A 级，非黑名单）** 做了合同条款检索，用「分批交付」「拆单」「分批」三个关键词各检索了一次，**均返回「未检索到」**，没有返回任何可引用的条款号。\n\n按工具规则，这种情况下**不能凭空推断合同内容**，所以我不能凭空推断“有”或“没有”这条条款；只能说在当前合同条款库中检索不到与“分批交付或拆单”匹配的条款。\n\n### 关于你让我“直接搜索代码库和数据库文件”\n\n这一点我没法照做，需要说明清楚：\n\n- ",
       "failed": [],
       "advisories": []
     }
